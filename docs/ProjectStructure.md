@@ -11,7 +11,6 @@
   - `types` - общие типы для работы с services
 - `store` - глобальный store. **Вся** конфигурация (rootReducer, middleware, типы) живёт здесь.
 - `assets` - статические ресурсы (изображения, шрифты, SVG-иконки).
-- `docs` - папка для документации проекта.
 - `config` - конфигурация приложения (env-переменные, feature flags).
 - `lib` - общие утилиты и библиотеки.
   - `hooks` - хуки проекта
@@ -49,14 +48,14 @@ constants → (только внешние библиотеки)
 
 **Запрещённые зависимости:**
 
-| Кто импортирует | Кого нельзя | Причина |
-|---|---|---|
-| `lib/` | `services/`, `store/`, `components/` | Утилиты должны быть чистыми, без side-effects |
-| `components/ui/` | `services/`, `store/`, `components/business/` | UI-кит не знает о бизнесе |
-| `services/` | `components/`, `store/` | Сервисы не зависят от UI или состояния |
-| `store/` | `components/`, `services/` | Стор не знает, кто его использует |
-| `constants/` | `services/`, `store/`, `components/`, `lib/` | Константы — листовые узлы |
-| `mocks/` | `services/`, `store/`, `components/`, `lib/`, `app/` | Моки только для тестов и stories, запрещён импорт в рабочий код |
+| Кто импортирует  | Кого нельзя                                          | Причина                                                         |
+| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
+| `lib/`           | `services/`, `store/`, `components/`                 | Утилиты должны быть чистыми, без side-effects                   |
+| `components/ui/` | `services/`, `store/`, `components/business/`        | UI-кит не знает о бизнесе                                       |
+| `services/`      | `components/`, `store/`                              | Сервисы не зависят от UI или состояния                          |
+| `store/`         | `components/`, `services/`                           | Стор не знает, кто его использует                               |
+| `constants/`     | `services/`, `store/`, `components/`, `lib/`         | Константы — листовые узлы                                       |
+| `mocks/`         | `services/`, `store/`, `components/`, `lib/`, `app/` | Моки только для тестов и stories, запрещён импорт в рабочий код |
 
 **Реализация:** правило линтера `import/no-restricted-paths` (или аналог) для автоматической проверки границ зависимостей.
 
@@ -132,6 +131,7 @@ constants → (только внешние библиотеки)
   - `service/` - моки API-сервисов
   - `components/` - моки для пропсов компонентов
 - **Пример структуры**:
+
   ```
   mocks/
     ├── service/
@@ -221,11 +221,11 @@ interface ApiClient {
 
 ### Конфигурация клиента
 
-| Параметр | Откуда берётся | Описание |
-|---|---|---|
-| Base URL | env-переменная (`API_URL` и т.д.) | Не захардкожен в коде, читается из конфигурации окружения |
-| Timeout | константа в `client.ts` (по умолчанию 30 сек) | Меняется per-request при необходимости |
-| Заголовки по умолчанию | `client.ts` | `Content-Type: application/json`, `Accept: application/json` |
+| Параметр               | Откуда берётся                                | Описание                                                     |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------------------ |
+| Base URL               | env-переменная (`API_URL` и т.д.)             | Не захардкожен в коде, читается из конфигурации окружения    |
+| Timeout                | константа в `client.ts` (по умолчанию 30 сек) | Меняется per-request при необходимости                       |
+| Заголовки по умолчанию | `client.ts`                                   | `Content-Type: application/json`, `Accept: application/json` |
 
 ### Interceptors — жизненный цикл запроса
 
@@ -239,12 +239,14 @@ Request pipeline:
 ```
 
 **auth.ts** — контракт:
+
 - Читает токен из `services/storage` (localStorage/cookie)
 - Подставляет в `Authorization: Bearer {token}`
 - При 401 → обновляет токен (refresh token flow) или редиректит на логин
 - Не содержит бизнес-логику, только механику токена
 
 **errorHandler.ts** — контракт:
+
 - Маппит HTTP-статус-коды в типизированные ошибки приложения
 - 400 → `ValidationError` (с телом ошибки от сервера)
 - 401 → `UnauthorizedError` (trigger logout)
@@ -255,6 +257,7 @@ Request pipeline:
 - Все ошибки реализуют общий интерфейс `AppError`
 
 **retry.ts** — контракт:
+
 - Повторяет запрос при: network error, 429 (rate limit), 503 (unavailable)
 - **Не повторяет** при: 400, 401, 403, 404 (это не transient ошибки)
 - Стратегия: exponential backoff (1s → 2s → 4s)
@@ -269,29 +272,29 @@ Request pipeline:
 interface AppError {
   code: ErrorCode;
   message: string;
-  status?: number;        // HTTP-статус (если HTTP-ошибка)
-  details?: unknown;      // Тело ошибки от сервера (validation errors и т.д.)
-  isRetryable: boolean;   // Можно ли повторить запрос
+  status?: number; // HTTP-статус (если HTTP-ошибка)
+  details?: unknown; // Тело ошибки от сервера (validation errors и т.д.)
+  isRetryable: boolean; // Можно ли повторить запрос
 }
 
 type ErrorCode =
-  | 'NETWORK_ERROR'       // Нет соединения
-  | 'TIMEOUT'             // Таймаут запроса
-  | 'UNAUTHORIZED'        // 401
-  | 'FORBIDDEN'           // 403
-  | 'NOT_FOUND'           // 404
-  | 'VALIDATION'          // 400 — ошибка валидации от сервера
-  | 'SERVER'              // 500+
-  | 'UNKNOWN';            // Всё остальное
+  | "NETWORK_ERROR" // Нет соединения
+  | "TIMEOUT" // Таймаут запроса
+  | "UNAUTHORIZED" // 401
+  | "FORBIDDEN" // 403
+  | "NOT_FOUND" // 404
+  | "VALIDATION" // 400 — ошибка валидации от сервера
+  | "SERVER" // 500+
+  | "UNKNOWN"; // Всё остальное
 ```
 
 ### DTO vs бизнес-модели
 
-| Уровень | Где живёт | Что это | Пример |
-|---|---|---|---|
-| DTO (request) | `services/types/request.types.ts` | Тело запроса к API | `{ email: string; password: string }` |
-| DTO (response) | `services/types/response.types.ts` | Тело ответа от API | `{ id: number; first_name: string; created_at: string }` |
-| Бизнес-модель | `lib/business/` или `store/*/types` | Модель после маппинга | `{ id: string; firstName: string; createdAt: Date }` |
+| Уровень        | Где живёт                           | Что это               | Пример                                                   |
+| -------------- | ----------------------------------- | --------------------- | -------------------------------------------------------- |
+| DTO (request)  | `services/types/request.types.ts`   | Тело запроса к API    | `{ email: string; password: string }`                    |
+| DTO (response) | `services/types/response.types.ts`  | Тело ответа от API    | `{ id: number; first_name: string; created_at: string }` |
+| Бизнес-модель  | `lib/business/` или `store/*/types` | Модель после маппинга | `{ id: string; firstName: string; createdAt: Date }`     |
 
 **Правило**: компоненты и store **никогда** не работают с DTO напрямую. Между DTO и бизнес-моделью — конвертер. Конвертеры colocated — живут **рядом с местом использования** (в папке страницы, компонента или store-модуля):
 
@@ -318,6 +321,7 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
 ```
 
 **Правила**:
+
 - Endpoint возвращает **DTO**, не бизнес-модель
 - Конвертацию делает вызывающий код (store/hook/component), конвертер лежит рядом с ним
 - Каждый endpoint — одна функция, один файл (или несколько мелких в одном файле, если они связаны)
@@ -369,20 +373,11 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
         └── cartSelectors.ts
   ```
 
-## `docs` - Документация проекта
-
-- **Пример структуры**:
-  ```
-  docs/
-    ├── ProjectStructure.md
-    ├── Development.md
-    └── CodeStyleGuide.md
-  ```
-
 ## `config` - Конфигурация приложения
 
 - **Назначение**: типизированный доступ к env-переменным и feature flags. Единственное место, где читаются `process.env` / `import.meta.env` и т.д.
 - **Пример структуры**:
+
   ```
   config/
     ├── env.ts               # Типизированные env-переменные (API_URL, NODE_ENV и т.д.)
@@ -398,6 +393,7 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
 
 - **Содержит**: изображения, шрифты, SVG-иконки, видео и другие файлы, которые не являются кодом.
 - **Пример структуры**:
+
   ```
   assets/
     ├── images/
@@ -428,6 +424,7 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
   - Хук используется **в нескольких местах** → `lib/hooks/` (переиспользуемый)
 
 - **Пример структуры `business/`**:
+
   ```
   business/
     └── formatters/
@@ -436,9 +433,11 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
         ├── moneyAmount.ts         # Zod: валидация денежных сумм
         └── numberFormat.ts        # Zod: обобщённая валидация чисел
   ```
+
   - Примечание: обобщённые утилиты и Zod-схемы для валидации полей форм. Схемы валидации **ответов API** живут рядом с endpoint-функциями (см. «Валидация данных»).
 
 - **Пример структуры `utils/`**:
+
   ```
   utils/
     ├── string/                  # или string.ts — при малом количестве
@@ -451,21 +450,22 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
 
 ## File Naming Convention
 
-| Тип файла | Формат | Пример |
-|---|---|---|
-| Папка компонента/утилиты | `camelCase/` | `productCard/`, `radioGroup/` |
-| Компонент | `PascalCase.tsx` | `ProductCard.tsx` |
-| Хук (привязан к компоненту) | `*.hooks.ts` | `ProductCard.hooks.ts` |
-| Утилита | `camelCase.ts` | `formatPrice.ts` |
-| Типы/интерфейсы (рядом с файлом) | `*.types.ts` | `ProductCard.types.ts` |
-| Константы | `*.constants.ts` | `routes.constants.ts` |
-| Стили компонента | `*.styles.ts` / `*.module.css` и т.д. | `productCard.styles.ts` |
-| Тест | `*.test.tsx` / `*.test.ts` | `ProductCard.test.tsx` |
-| Story | `*.stories.tsx` | `ProductCard.stories.tsx` |
-| Мок | `*.mock.ts` | `userApi.mock.ts` |
-| Barrel-экспорт | `index.ts` | В каждой папке |
+| Тип файла                        | Формат                                | Пример                        |
+| -------------------------------- | ------------------------------------- | ----------------------------- |
+| Папка компонента/утилиты         | `camelCase/`                          | `productCard/`, `radioGroup/` |
+| Компонент                        | `PascalCase.tsx`                      | `ProductCard.tsx`             |
+| Хук (привязан к компоненту)      | `*.hooks.ts`                          | `ProductCard.hooks.ts`        |
+| Утилита                          | `camelCase.ts`                        | `formatPrice.ts`              |
+| Типы/интерфейсы (рядом с файлом) | `*.types.ts`                          | `ProductCard.types.ts`        |
+| Константы                        | `*.constants.ts`                      | `routes.constants.ts`         |
+| Стили компонента                 | `*.styles.ts` / `*.module.css` и т.д. | `productCard.styles.ts`       |
+| Тест                             | `*.test.tsx` / `*.test.ts`            | `ProductCard.test.tsx`        |
+| Story                            | `*.stories.tsx`                       | `ProductCard.stories.tsx`     |
+| Мок                              | `*.mock.ts`                           | `userApi.mock.ts`             |
+| Barrel-экспорт                   | `index.ts`                            | В каждой папке                |
 
 **Правила**:
+
 - Один компонент на файл
 - Только именованный экспорт (`export default` запрещён)
 - Barrel-экспорт (`index.ts`) в каждой папке
@@ -474,17 +474,19 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
 - Если типы общие для нескольких файлов — в общей папке `types/` модуля
 
 **Barrel-экспорт (`index.ts`)** — что экспортирует:
+
 - Только **публичный API** папки: компонент, типы пропсов
 - **Не экспортирует**: внутренние хуки, утилиты, константы, тесты, stories
 - Если папка содержит несколько компонентов — экспортирует все через именованный экспорт
 - Пример:
   ```ts
   // components/ui/atoms/button/index.ts
-  export { Button } from './Button';
-  export type { ButtonProps } from './Button.types';
+  export { Button } from "./Button";
+  export type { ButtonProps } from "./Button.types";
   ```
 
 **Пример структуры компонента**:
+
 ```
 productCard/
 ├── index.ts                  # barrel-экспорт
@@ -516,6 +518,7 @@ productCard/
   - Базовые классы, определения темы и переменных, утилитарных классов
   - Слой содержит: базовые стили (reset/normalize), тему (цвета, токены), утилитарные стили
 - **Пример**:
+
   ```
   export const palette = {
     primary: '#0ea5e9',
@@ -660,13 +663,13 @@ productCard/
 
 Критерий проверяемый — **наличие импорта из `store/` или `services/`**:
 
-| Критерий | `patterns/` | `features/` |
-|---|---|---|
-| Импорт из `store/` | **Запрещён** | **Обязателен** (хотя бы селектор или thunk) |
-| Импорт из `services/` | **Запрещён** | **Допускается** (через хуки) |
-| Источник данных | Только `props` | Store, context, services |
-| Переиспользуемость | Высокая (не знает домен) | Средняя (привязана к бизнес-домену) |
-| Storybook | Обязателен | Опционально |
+| Критерий              | `patterns/`              | `features/`                                 |
+| --------------------- | ------------------------ | ------------------------------------------- |
+| Импорт из `store/`    | **Запрещён**             | **Обязателен** (хотя бы селектор или thunk) |
+| Импорт из `services/` | **Запрещён**             | **Допускается** (через хуки)                |
+| Источник данных       | Только `props`           | Store, context, services                    |
+| Переиспользуемость    | Высокая (не знает домен) | Средняя (привязана к бизнес-домену)         |
+| Storybook             | Обязателен               | Опционально                                 |
 
 **Правило решения**: если компонент не импортирует `store/` и `services/` — он `pattern` или `ui/organism`. Если импортирует — он `features/`.
 
@@ -687,14 +690,14 @@ productCard/
 
 ### Какие компоненты **обязаны** иметь story
 
-| Слой | Story обязателен | Причина |
-|---|---|---|
-| `ui/atoms/` | Да | Базовые строительные блоки, должны быть задокументированы |
-| `ui/molecules/` | Да | Переиспользуемые композиции, разработчики должны видеть все состояния |
-| `ui/organisms/` | Да | Сложные блоки, требуют интерактивной демонстрации |
-| `business/layouts/` | Опционально | Макеты без логики, story полезна для визуальной проверки |
-| `business/patterns/` | Опционально | Шаблонные компоненты с большим количеством конфигураций |
-| `business/features/` | Нет | Содержат бизнес-логику и привязку к store — сложно изолировать |
+| Слой                 | Story обязателен | Причина                                                               |
+| -------------------- | ---------------- | --------------------------------------------------------------------- |
+| `ui/atoms/`          | Да               | Базовые строительные блоки, должны быть задокументированы             |
+| `ui/molecules/`      | Да               | Переиспользуемые композиции, разработчики должны видеть все состояния |
+| `ui/organisms/`      | Да               | Сложные блоки, требуют интерактивной демонстрации                     |
+| `business/layouts/`  | Опционально      | Макеты без логики, story полезна для визуальной проверки              |
+| `business/patterns/` | Опционально      | Шаблонные компоненты с большим количеством конфигураций               |
+| `business/features/` | Нет              | Содержат бизнес-логику и привязку к store — сложно изолировать        |
 
 ### Структура story-файла
 
@@ -708,18 +711,18 @@ Story-файл описывает компонент и его состояни�
 
 **Обязательные stories:**
 
-| Story | Назначение |
-|---|---|
-| `Default` | Состояние по умолчанию, отображается при первом открытии |
+| Story                     | Назначение                                                    |
+| ------------------------- | ------------------------------------------------------------- |
+| `Default`                 | Состояние по умолчанию, отображается при первом открытии      |
 | Все значения enum-пропсов | Визуальное покрытие всех вариантов (`variant`, `size` и т.д.) |
 
 **Желательные stories:**
 
-| Story | Назначение |
-|---|---|
-| Loading / Disabled | Состояния взаимодействия |
-| Edge cases | Длинный текст, пустое содержимое, граничные значения |
-| Адаптив | Проверка через viewport toolbar |
+| Story              | Назначение                                           |
+| ------------------ | ---------------------------------------------------- |
+| Loading / Disabled | Состояния взаимодействия                             |
+| Edge cases         | Длинный текст, пустое содержимое, граничные значения |
+| Адаптив            | Проверка через viewport toolbar                      |
 
 ### Правила
 
@@ -758,9 +761,9 @@ Business/
 
 ### Что story демонстрирует для каждого компонента
 
-| Обязательно | Желательно |
-|---|---|
-| Default (состояние по умолчанию) | Все варианты (`variant`, `size`) рядом |
-| Все значения enum-пропсов | Loading/Disabled состояния |
-| | Edge cases (длинный текст, пустое содержимое) |
-| | Адаптив (через toolbar viewport) |
+| Обязательно                      | Желательно                                    |
+| -------------------------------- | --------------------------------------------- |
+| Default (состояние по умолчанию) | Все варианты (`variant`, `size`) рядом        |
+| Все значения enum-пропсов        | Loading/Disabled состояния                    |
+|                                  | Edge cases (длинный текст, пустое содержимое) |
+|                                  | Адаптив (через toolbar viewport)              |
