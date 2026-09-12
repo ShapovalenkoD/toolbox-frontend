@@ -1,71 +1,110 @@
 # Структура проекта - краткая версия
 
-- `app` - точка входа в апп, содержащие основные конфигурации проекта, страницы проекта.
-- `constants` - константы проекта
-- `mocks` - Работа с моковыми данными.
-  - `service` - для service
-  - `components` - для компонентов
-- `services` - сервисы для работы с side effects - api/localStorage/cookie т.д. (два разных варианта реализации)
-  - `api` - При своей реализации:
-    - `[nameService]` - сервисы для путей с [nameService]
-  - `api` - При автогенерации структура
-    - `generated` - папка для генерации данных со схемы, добавленная в .gitignore
-    - `schemas` - {schemaName}.tsx - фаил для генерации схемы
-    - `endpoints` - при необходимости, если их нет в schema или надо переопределить, или сторонние сервисы без схем
-    - client.ts - конфиг API-клиента
+- `app` - точка входа в приложение: провайдеры, роутинг, страницы. **Не содержит** конфигурацию store.
+- `constants` - глобальные константы проекта (regex, роуты, общие значения).
+- `mocks` - моковые данные для тестов и разработки.
+  - `service` - моки API-сервисов
+  - `components` - моки для пропсов компонентов
+- `services` - сервисы для работы с side-effects (API, localStorage, cookie).
+  - `api/[variant]` - два варианта реализации (см. полную версию)
   - `localStorage` - методы для работы с localStorage
   - `types` - общие типы для работы с services
-- `store` - глобальный store.
+- `store` - глобальный store. **Вся** конфигурация (rootReducer, middleware, типы) живёт здесь.
 - `docs` - папка для документации проекта.
-- `lib` - общие утилиты и библиотеки
-  - `hooks` - Хуки проекта.
-  - `ts` - утилиты - дженерики для TypeScript
-  - `domain` - утилиты относящееся к проекту (что зависит от бизнес-логики).
-  - `utils` - чистые утилиты без контекста проекта.
-- `components` - общая папка для всех компонентов
-  - `domain` - компоненты относящиеся к бизнес логики
-    - `layouts` - Композиции макетов по бизнес логики, без содержание логики.
-    - `patterns` - Шаблонные компоненты c обобщённой бизнес логикой.
-    - `features` - Компоненты с конечной реализацией бизнес логики.
-  - `ui` - общая папка для ui кита
-    - `foundation` (Базовые стили) - Глобальные стилевые константы с их типами
-    - `atoms` (Примитивы) - Простейшие UI-элементы
-    - `molecules` (Простые композиции) - группы атомов
-    - `organisms` (Сложные блоки) - Комплексные UI-компоненты
+- `lib` - общие утилиты и библиотеки.
+  - `hooks` - хуки проекта
+  - `ts` - утилиты-дженерики для TypeScript
+  - `domain` - утилиты, зависящие от бизнес-логики проекта
+  - `utils` - чистые утилиты без контекста проекта
+- `components` - общая папка для всех компонентов.
+  - `business` - компоненты, относящиеся к бизнес-логике
+    - `layouts` - композиции макетов, без логики
+    - `patterns` - шаблонные компоненты с обобщённой бизнес-логикой
+    - `features` - компоненты с конечной реализацией бизнес-логики
+  - `ui` - общая папка для UI-кита
+    - `foundation` - глобальные стилевые константы с их типами
+    - `atoms` - простейшие UI-элементы
+    - `molecules` - группы атомов
+    - `organisms` - комплексные UI-компоненты
+
+---
+
+# Dependency rules — карта допустимых зависимостей
+
+Направление стрелки: `A → B` означает "A может импортировать B".
+
+```
+app → components/business → components/ui
+app → store → lib
+app → services → lib
+components/business → services (через хуки)
+components/business → store (через селекторы)
+components/ui → (только внешние библиотеки)
+lib → (только внешние библиотеки)
+services → lib
+constants → (только внешние библиотеки)
+```
+
+**Запрещённые зависимости:**
+
+| Кто импортирует | Кого нельзя | Причина |
+|---|---|---|
+| `lib/` | `services/`, `store/`, `components/` | Утилиты должны быть чистыми, без side-effects |
+| `components/ui/` | `services/`, `store/`, `components/business/` | UI-кит не знает о бизнесе |
+| `services/` | `components/`, `store/` | Сервисы не зависят от UI или состояния |
+| `store/` | `components/`, `services/` | Стор не знает, кто его использует |
+| `constants/` | `services/`, `store/`, `components/`, `lib/` | Константы — листовые узлы |
+
+**Реализация:** `eslint-plugin-import` → правило `import/no-restricted-paths` (см. `.eslintrc`).
+
+---
 
 # Структура проекта - полная версия
 
 ## `app` - Точка входа приложения
 
-- **Содержит**: Основные конфигурации (роутинг, провайдеры), страницы проекта
+- **Содержит**: провайдеры (store, router, theme), страницы проекта.
+- **Не содержит**: конфигурацию store (rootReducer, middleware) — это живёт в `store/`.
 - **Правила**:
-  - Компоненты используемые только на 1 странице → `/children`
+  - Компоненты, используемые только на 1 странице → `/_components`
   - Переиспользуемые компоненты выносятся в `components/`
 - **Пример структуры**:
 
   ```
   app/
     ├── App.tsx
-    ├── rootReducer.ts
-    ├── RootProvider.tsx
+    ├── RootProvider.tsx          # Только композиция провайдеров
     ├── app.css
     └── profilePage/
         ├── layout.tsx
         ├── page.tsx
-        └── children/
+        └── _components/
             └── CardProfile/
-                ├── CardProfile.tsx - компонент карточки пользователя, использующееся только в данном роут
+                ├── CardProfile.tsx
                 └── CardProfile.module.css
+  ```
+
+- **RootProvider** — тривиальная обёртка:
+  ```tsx
+  import { Provider } from 'react-redux';
+  import { store } from '@/store/store';
+
+  export const RootProvider = ({ children }) => (
+    <Provider store={store}>
+      {children}
+    </Provider>
+  );
   ```
 
 ## `constants` - Глобальные константы приложения
 
+- **Содержит**: только константы-примитивы и конфигурационные объекты без side-effects.
+- **Не содержит**: API-константы (notification messages) — они относятся к `services/`.
 - **Примеры файлов**:
   ```
   constants/
-    ├── api/
-    |    └── notification.ts - стандартное сообщения при вызове апи
-    └── regex.ts
+    ├── regex.ts
+    └── routes.ts
   ```
 
 ## `mocks` - Моковые данные для тестов и разработки
@@ -84,47 +123,59 @@
 
 ## `services` - Работа с side-эффектами
 
-- **Структура**:
-  - `api` - При своей реализации:
-    - `[nameService]` - сервисы для путей с [nameService], при необходимости вложенные структуры древовидные
-  - `api` - При автогенерации структура
-    - `generated` - папка для генерации данных со схемы, добавленная в .gitignore
-    - `schemas` - {schemaName}.tsx - фаил для генерации схемы
-    - `endpoints` - при необходимости, если их нет в schema или надо переопределить, или сторонние сервисы без схем
-    - client.ts - конфиг API-клиента
-  - `localStorage` - методы для работы с localStorage
-  - `types` - общие типы для работы с services
-  - и т.д.
-- **Пример структуры**:
+- **Структура**: два варианта API-слоя (выбирается один на старте проекта, не оба одновременно).
+
+  ### Вариант А — ручная реализация
+
   ```
   services/
-    ├── api/ - При своей реализации
+    ├── api/
     │   └── auth/
     │       └── login.ts
-    ├── api/ - При автогенерации структура
-    │   ├── generated/  # .gitignore
-    │   ├── schemas/
-    │   │   └── user.schema.ts
-    │   ├── endpoints/
-    │   │   └── externalApi.ts
-    │   └── client.ts
     ├── localStorage/
     │   └── authStorage.ts
     └── types/
         └── api.types.ts
   ```
 
+  ### Вариант Б — автогенерация (codegen)
+
+  ```
+  services/
+    ├── api/
+    │   ├── generated/          # .gitignore — автогенерированный код
+    │   ├── schemas/
+    │   │   └── user.schema.ts
+    │   ├── endpoints/
+    │   │   └── externalApi.ts  # Ручные эндпоинты поверх codegen
+    │   └── client.ts           # Конфиг API-клиента
+    ├── localStorage/
+    │   └── authStorage.ts
+    └── types/
+        └── api.types.ts
+  ```
+
+- **Правила**:
+  - На старте проекта выбрать **один** вариант и зафиксировать в документации.
+  - `client.ts` содержит: базовый URL, interceptors (auth token, error handling, retry).
+  - `types/` — DTO для запросов/ответов, не бизнес-модели.
+
 ## `store` - Глобальный стейт-менеджмент
 
+- **Содержит**: всю конфигурацию store — rootReducer, middleware, типы RootState/AppDispatch.
 - **Пример структуры**:
   ```
   store/
+    ├── store.ts              # createStore + middleware + enhancers
+    ├── rootReducer.ts        # combineReducers всех слайсов
+    ├── middleware.ts          # кастомные middleware (логирование и т.д.)
+    ├── types.ts               # RootState, AppDispatch
     ├── user/
     │   ├── userSlice.ts
     │   └── userSelectors.ts
-    ├── cart/
-    │   └── cartSlice.ts
-    └── store.ts
+    └── cart/
+        ├── cartSlice.ts
+        └── cartSelectors.ts
   ```
 
 ## `docs` - Документация проекта
@@ -132,176 +183,176 @@
 - **Пример структуры**:
   ```
   docs/
-    ├── projectStructure.md
-    ├── development.md
-    └── codeStyleGuide.md
+    ├── ProjectStructure.md
+    ├── Development.md
+    └── CodeStyleGuide.md
   ```
 
-## `lib` - Утилиты и вспомогательные функции, сторонние библиотеки
+## `lib` - Утилиты и вспомогательные функции
 
 - **Структура**:
-  - `hooks` - Хуки проекта.
-  - `ts` - утилиты - дженерики для TypeScript
-  - `domain` - утилиты относящееся к проекту (что зависит от бизнес-логики).
-    - **Пример структуры**:
-      ```
-      domain/
-        ├── zValidators/
-        |   └── zCommon.ts - zod-схемы, для базовых кейсов
-        └── api/
-            └──  convertToBack{NameTypeData} - конвертация для данных в бекенд.
-      ```
-  - `utils` - чистые утилиты без контекста проекта.
-    - **Пример структуры**:
-      ```
-      utils/
-        ├── sting/ (или string.ts - при малом количестве utils)
-        |   └── declOfNum.ts - Функция для корректного отображения числительных
-        └── number/
-            └── formatPrice.ts - Функция для корректного отображения денег
-      ```
-      **Примеры сторонних библиотек**:
-  - `ymaps` - подключения из вне, яндекс карт
+  - `hooks` - хуки проекта
+  - `ts` - утилиты-дженерики для TypeScript
+  - `domain` - утилиты, зависящие от бизнес-логики
+  - `utils` - чистые утилиты без контекста проекта
 
-## `components` - UI-компоненты приложения
+- **Пример структуры `domain/`**:
+  ```
+  domain/
+    ├── zValidators/
+    │   └── zCommon.ts           # zod-схемы для базовых кейсов
+    └── api/
+        └── convertToBack{NameTypeData}.ts  # конвертация данных для бэкенда
+  ```
+
+- **Пример структуры `utils/`**:
+  ```
+  utils/
+    ├── string/                  # или string.ts — при малом количестве
+    │   └── declOfNum.ts
+    └── number/
+        └── formatPrice.ts
+  ```
+
+- **Примеры сторонних библиотек**:
+  - `ymaps` — подключение Яндекс Карт
+
+## `components` - Компоненты приложения
 
 - **Дизайн-система**: [Figma](https://figma.com/your-link)
-- **Пример структуры**:
 
   ```
   components/
-    ├── ui/
-    └── domain/
+    ├── ui/                      # UI-кит (без бизнес-логики)
+    └── business/                # Бизнес-компоненты
   ```
 
-  ### `ui/` - общая папка для ui кита, отвечающая за отображения элементов и их анимации
+### `ui/` - UI-кит
 
-  - #### `foundation/` - (Базовые стили) - Глобальные стилевые константы с их типами
+- **Правило**: не импортирует ничего из `services/`, `store/`, `components/business/`.
 
-    - **Правила**:
-      - Базовые классы, определения темы и переменных, утилитарных классов
-      - Из tailwind слои (layer) отвечающие - base, utils, theme
-    - **Пример**:
+#### `foundation/` - Базовые стили
 
-      ```
-      export const palette = {
-      primary: '#0ea5e9',
-        } as const;
+- **Правила**:
+  - Базовые классы, определения темы и переменных, утилитарных классов
+  - Tailwind слои (layer): `base`, `utils`, `theme`
+- **Пример**:
+  ```
+  export const palette = {
+    primary: '#0ea5e9',
+  } as const;
 
-      export type PaletteKey = keyof typeof palette;
-      ```
+  export type PaletteKey = keyof typeof palette;
+  ```
 
-  - #### `atoms/` - Примитивы - Простейшие UI-элементы
+#### `atoms/` - Примитивы
 
-    - **Правила**:
-      - Из tailwind слои (layer) отвечающие - components
-      - Утилитарные классы, помогающие основному класс (Пример: класс отвечающие за размер компонента)
-      - Отсутствие компонентов, только css классы
-    - **Пример структуры**:
+- **Правила**:
+  - Tailwind слой: `components`
+  - Утилитарные классы, помогающие основному классу (размер, вариант)
+  - Возможны как CSS-классы, так и компоненты
+- **Пример структуры**:
+  ```
+  atoms/
+    ├── button/
+    │   ├── Button.tsx
+    │   └── button.hooks.ts
+    ├── input/
+    │   ├── Input.tsx
+    │   └── input.hooks.ts
+    └── icons/
+        ├── ArrowIcon.tsx
+        └── CloseIcon.tsx
+  ```
 
-    ```
-    atoms/
-      ├── button/
-      │   ├── Button.tsx
-      │   └── button.hooks.ts
-      ├── input/
-      │   ├── Input.tsx
-      │   └── input.hooks.ts
-      └── icons/
-          ├── ArrowIcon.tsx
-          └── CloseIcon.tsx
-    ```
+#### `molecules/` - Простые композиции
 
-  - #### `molecules/` - Простые композиции - группы атомов
+- **Правила**:
+  - Внутреннее состояние допускается
+  - Атом с дополнительной логикой или группа атомов
+- **Пример структуры**:
+  ```
+  molecules/
+    ├── radioGroup/
+    │   ├── RadioGroup.tsx
+    │   └── radioGroup.module.css
+    ├── loadingButton/
+    │   ├── LoadingButton.tsx
+    │   └── loadingButton.module.css
+    └── alert/
+        └── Alert.tsx
+  ```
 
-    - **Правила**:
-      - Внутреннее состояние
-      - Атом с дополнительной логикой или группы атомов
-      - Отдельный компонент
-    - **Пример структуры**:
+#### `organisms/` - Сложные блоки
 
-    ```
-    molecules/
-      ├── radioGroup/
-      │   ├── RadioGroup.tsx
-      │   └── radioGroup.module.css
-      ├── loadingButton/
-      │   ├── LoadingButton.tsx
-      │   └── loadingButton.module.css
-      └── alert/
-          └── Alert.tsx
-    ```
+- **Правила**:
+  - Сложная UI-логика (анимации, сложные взаимодействия)
+  - Допускается использование UI-библиотек (Swiper, Recharts и т.д.)
+- **Пример структуры**:
+  ```
+  organisms/
+    └── carousel/
+        ├── Carousel.tsx
+        └── carousel.module.css
+  ```
 
-  - #### `organisms/` - Сложные блоки - Комплексные UI-компоненты
+### `business/` - Бизнес-компоненты
 
-    - **Правила**:
-      - Сложная логика отвечающая за UI представления компонента
-      - Использование дополнительных библиотек отвечающие за UI
-    - **Пример структуры**:
+- **Правило**: может импортировать из `services/` (через хуки) и `store/` (через селекторы).
 
-    ```
-    organisms/
-      └── carousel/
-          ├── Carousel.tsx
-          └── carousel.module.css
-    ```
+#### `layouts/` - Композиции макетов
 
-  ### `domain/` - Шаблонные компоненты c бизнес логикой
+- **Правила**:
+  - Компоненты отвечают за отрисовку макетов
+  - Без бизнес-логики
+  - Переиспользуются в pages/features/patterns
+  - Медиа-запросы для адаптива
+- **Пример структуры**:
+  ```
+  layouts/
+    ├── main/
+    │   ├── MainLayout.tsx
+    │   └── CardLayout.tsx
+    └── card/
+        └── product/
+            ├── ProductCardLayout.tsx
+            └── productCardLayout.module.css
+  ```
 
-  - #### `layouts/` - Композиции макетов
+#### `patterns/` - Шаблонные компоненты с обобщённой бизнес-логикой
 
-    - **Правила**:
-      - Компоненты отвечающие за отрисовку макетов для данного проекта
-      - Отсутствие логики
-      - Переииспользуются многократно в pages\features\patterns
-      - Медиа-запросы для адаптива
-    - **Пример структуры**:
-      ```
-      layouts/
-        ├── main/
-        │   ├── MainLayout.tsx
-        │   └── CardLayout.ts
-        └── card/
+- **Правила**:
+  - Не имеют конечной бизнес-логики
+  - Без внешних провайдеров данных
+  - Большое количество конфигураций (props-driven)
+  - Переиспользуются в pages/features
+  - **Запрещены side-effects и обращения к API напрямую** — данные передаются через пропсы или хуки-аргументы
+- **Пример структуры**:
+  ```
+  patterns/
+    └── card/
+        ├── Card.tsx
+        └── card.module.css
+  ```
+
+#### `features/` - Компоненты с конечной бизнес-логикой
+
+- **Правила**:
+  - Обязательно имеют конечную реализацию бизнес-логики
+  - Минимальное количество конфигураций (только визуальные: `getName`, `className`)
+  - Переиспользуются в pages
+  - Группировка: сначала по общему домену, потом по бизнес-домену
+  - Интеграция с внешними провайдерами данных (context/store) допускается
+- **Пример структуры**:
+  ```
+  features/
+    ├── cards/
+    │   └── productCard/
+    │       ├── ProductCard.tsx
+    │       └── ProductCard.hooks.ts
+    └── table/
+        └── columns/
             └── product/
-                ├── ProductCardLayout.tsx
-                └── productCardLayout.module.tsx
-      ```
-
-    #### `patterns/` - Шаблонные компоненты c обобщённой бизнес логикой
-
-    - **Правила**:
-      - Компоненты не имеют конечную бизнес-логику
-      - Компоненты без внешних провайдеров данных
-      - Большое количество конфигураций
-      - Переиспользуются многократно в pages/features
-      - Сайд эффекты, обращения к апи (обобщённые методы для загрузки через пропсы)
-    - **Пример структуры**:
-
-      ```
-      patterns/
-        └── card/
-            ├── Card.tsx
-            └── card.module.tsx
-      ```
-
-    #### `features/` - Компоненты c бизнес логикой
-
-    - **Правила**:
-      - Компоненты обязательно имеют конечную реализацию бизнес-логику
-      - Минимальное количество конфигураций и только отвечающие за визуальное отображения (getName, className)
-      - Переиспользуются многократно в pages
-      - Группируется с начало по общему домену (cards) потом по домену бизнеса (cards\product или cards\photo)
-      - Интеграция с внешними провайдерами данных контекстом\сторам (тема, локализация)
-    - **Пример структуры**:
-      ```
-      features/
-        ├── cards/
-        │   └── productCard/
-        │       ├── ProductCard.tsx
-        │       └── ProductCard.hooks.ts
-        └── table/
-            └── columns/
-                └── product/
-                    ├── nameProductColumnTable.tsx
-                    └── priceProductColumnTable.tsx
-      ```
+                ├── nameProductColumnTable.tsx
+                └── priceProductColumnTable.tsx
+  ```
