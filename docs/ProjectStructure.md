@@ -10,11 +10,13 @@
   - `localStorage` - методы для работы с localStorage
   - `types` - общие типы для работы с services
 - `store` - глобальный store. **Вся** конфигурация (rootReducer, middleware, типы) живёт здесь.
+- `assets` - статические ресурсы (изображения, шрифты, SVG-иконки).
 - `docs` - папка для документации проекта.
+- `config` - конфигурация приложения (env-переменные, feature flags).
 - `lib` - общие утилиты и библиотеки.
   - `hooks` - хуки проекта
   - `ts` - утилиты-дженерики для TypeScript
-  - `domain` - утилиты, зависящие от бизнес-логики проекта
+  - `business` - утилиты, зависящие от бизнес-логики проекта
   - `utils` - чистые утилиты без контекста проекта
 - `components` - общая папка для всех компонентов.
   - `business` - компоненты, относящиеся к бизнес-логике
@@ -54,8 +56,9 @@ constants → (только внешние библиотеки)
 | `services/` | `components/`, `store/` | Сервисы не зависят от UI или состояния |
 | `store/` | `components/`, `services/` | Стор не знает, кто его использует |
 | `constants/` | `services/`, `store/`, `components/`, `lib/` | Константы — листовые узлы |
+| `mocks/` | `services/`, `store/`, `components/`, `lib/`, `app/` | Моки только для тестов и stories, запрещён импорт в рабочий код |
 
-**Реализация:** `eslint-plugin-import` → правило `import/no-restricted-paths` (см. `.eslintrc`).
+**Реализация:** правило линтера `import/no-restricted-paths` (или аналог) для автоматической проверки границ зависимостей.
 
 ---
 
@@ -86,16 +89,30 @@ constants → (только внешние библиотеки)
                 └── cardProfile.module.css
   ```
 
-- **RootProvider** — тривиальная обёртка:
-  ```tsx
-  import { Provider } from 'react-redux';
-  import { store } from '@/store/store';
+- **RootProvider** — тривиальная обёртка, композиция всех провайдеров приложения (store, router, theme и т.д.). Не содержит бизнес-логики.
 
-  export const RootProvider = ({ children }) => (
-    <Provider store={store}>
-      {children}
-    </Provider>
-  );
+### Routing
+
+- **Стратегия**: выбрать один подход на старте проекта:
+  - **Config-based** — массив роутов в `app/routes.ts` / `app/router.ts`
+  - **File-based** — структура папок = структура URL (Next.js-style)
+- **Lazy loading**: страницы загружаются отложено (dynamic import + fallback)
+- **Guards**: защита роутов (авторизация, роли) — отдельный компонент `AuthGuard` / `app/guards/`
+- **Пример структуры**:
+  ```
+  app/
+    ├── App.tsx
+    ├── RootProvider.tsx
+    ├── routes.tsx                 # Конфигурация роутов (config-based)
+    ├── guards/
+    │   └── AuthGuard.tsx          # Проверка авторизации
+    └── pages/
+        ├── home/
+        │   └── page.tsx
+        ├── profile/
+        │   └── page.tsx
+        └── login/
+            └── page.tsx
   ```
 
 ## `constants` - Глобальные константы приложения
@@ -122,6 +139,10 @@ constants → (только внешние библиотеки)
     └── components/
         └── CardProfile.mock.ts
   ```
+
+- **Правила**:
+  - Моки импортируются **только** из тестов и stories
+  - Запрещён импорт моков в рабочий код (components, services, store)
 
 ## `services` - Работа с side-эффектами
 
@@ -202,7 +223,7 @@ interface ApiClient {
 
 | Параметр | Откуда берётся | Описание |
 |---|---|---|
-| Base URL | env-переменная (`VITE_API_URL` / `NEXT_PUBLIC_API_URL` и т.д.) | Не захардкожен в коде |
+| Base URL | env-переменная (`API_URL` и т.д.) | Не захардкожен в коде, читается из конфигурации окружения |
 | Timeout | константа в `client.ts` (по умолчанию 30 сек) | Меняется per-request при необходимости |
 | Заголовки по умолчанию | `client.ts` | `Content-Type: application/json`, `Accept: application/json` |
 
@@ -270,12 +291,13 @@ type ErrorCode =
 |---|---|---|---|
 | DTO (request) | `services/types/request.types.ts` | Тело запроса к API | `{ email: string; password: string }` |
 | DTO (response) | `services/types/response.types.ts` | Тело ответа от API | `{ id: number; first_name: string; created_at: string }` |
-| Бизнес-модель | `lib/domain/` или `store/*/types` | Модель после маппинга | `{ id: string; firstName: string; createdAt: Date }` |
+| Бизнес-модель | `lib/business/` или `store/*/types` | Модель после маппинга | `{ id: string; firstName: string; createdAt: Date }` |
 
-**Правило**: компоненты и store **никогда** не работают с DTO напрямую. Между DTO и бизнес-моделью — конвертер:
+**Правило**: компоненты и store **никогда** не работают с DTO напрямую. Между DTO и бизнес-моделью — конвертер. Конвертеры colocated — живут **рядом с местом использования** (в папке страницы, компонента или store-модуля):
 
 ```ts
-// lib/domain/api/userConverter.ts
+// app/profilePage/utils/userConverter.ts
+// или store/user/utils/userConverter.ts
 
 export const userFromDto = (dto: UserResponseDto): User => ({
   id: String(dto.id),
@@ -297,7 +319,7 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
 
 **Правила**:
 - Endpoint возвращает **DTO**, не бизнес-модель
-- Конвертацию делает вызывающий код (store/hook/component)
+- Конвертацию делает вызывающий код (store/hook/component), конвертер лежит рядом с ним
 - Каждый endpoint — одна функция, один файл (или несколько мелких в одном файле, если они связаны)
 - Никакой бизнес-логики в endpoint-функциях — только вызов клиента с параметрами
 
@@ -309,16 +331,36 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
 - Токен-менеджмент живёт в `services/`, не в store
 - Все env-переменные типизированы и читаются через `config/env.ts` (не напрямую из `process.env`)
 
+### Валидация данных
+
+- **Принцип**: по умолчанию доверяем контрактам с бэкендом. API отдаёт валидированные данные, клиент не дублирует валидацию.
+- **Валидация ответов API**: только при явном требовании (нестабильный API, миграция, отсутствие контрактов). Схемы живут **рядом с endpoint-функцией**:
+  ```
+  services/
+    └── api/
+        └── auth/
+            ├── login.ts
+            └── login.schema.ts    # Zod-схема для валидации ответа login
+  ```
+- **Валидация форм**: доверяем бэкенду. Если клиентская валидация нужна (мгновенная обратная связь, UX), утилиты и Zod-схемы для полей форм живут в `lib/business/formatters/` (см. раздел `lib`). Это обобщённые валидации проекта: «дата больше текущей», «валидация денег», «формат числа» и т.д.
+- **При отсутствии требования**: формы передают данные напрямую в endpoint-функцию, без промежуточной валидации.
+
 ## `store` - Глобальный стейт-менеджмент
 
-- **Содержит**: всю конфигурацию store — rootReducer, middleware, типы RootState/AppDispatch.
+- **Содержит**: всю конфигурацию state-менеджера — создание store, middleware, типы состояния.
+- **Примечание**: имена файлов (`rootReducer.ts`, `*Slice.ts`) зависят от выбранного state-менеджера (Redux Toolkit, Zustand, MobX и т.д.). Пример ниже — одна из возможных структур.
+- **Async-логика**:
+  - Асинхронные операции (загрузка данных) живут **в store**, а не в компонентах
+  - Файл рядом со слайсом: `userThunks.ts` / `userActions.ts` / `userEffects.ts` (зависит от state-менеджера)
+  - Конвертация DTO → бизнес-модель происходит **в async-операции** (до попадания в store), конвертер лежит рядом (`store/user/utils/`)
+  - Store хранит только бизнес-модели, никогда DTO
 - **Пример структуры**:
   ```
   store/
-    ├── store.ts              # createStore + middleware + enhancers
-    ├── rootReducer.ts        # combineReducers всех слайсов
-    ├── middleware.ts          # кастомные middleware (логирование и т.д.)
-    ├── types.ts               # RootState, AppDispatch
+    ├── store.ts              # Создание store + middleware + enhancers
+    ├── rootReducer.ts        # Объединение всех слайсов/редьюсеров
+    ├── middleware.ts          # Кастомные middleware (логирование и т.д.)
+    ├── types.ts               # Типы глобального состояния и dispatch
     ├── user/
     │   ├── userSlice.ts
     │   └── userSelectors.ts
@@ -337,22 +379,64 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
     └── CodeStyleGuide.md
   ```
 
+## `config` - Конфигурация приложения
+
+- **Назначение**: типизированный доступ к env-переменным и feature flags. Единственное место, где читаются `process.env` / `import.meta.env` и т.д.
+- **Пример структуры**:
+  ```
+  config/
+    ├── env.ts               # Типизированные env-переменные (API_URL, NODE_ENV и т.д.)
+    └── features.ts          # Feature flags (включение/выключение фич)
+  ```
+
+- **Правила**:
+  - Весь проект импортирует env через `config/env.ts`, а не напрямую из `process.env`
+  - `env.ts` валидирует переменные при запуске (отсутствующие — ошибка, а не undefined)
+  - Feature flags — булевы флаги, типизированы, с дефолтами
+
+## `assets` - Статические ресурсы
+
+- **Содержит**: изображения, шрифты, SVG-иконки, видео и другие файлы, которые не являются кодом.
+- **Пример структуры**:
+  ```
+  assets/
+    ├── images/
+    │   ├── logo.svg
+    │   └── hero-banner.webp
+    ├── fonts/
+    │   └── Inter-Regular.woff2
+    └── icons/
+        ├── arrow-right.svg
+        └── close.svg
+  ```
+
+- **Правила**:
+  - Именование: `kebab-case`
+  - SVG-иконки, используемые как компоненты → `components/ui/atoms/icons/`
+  - SVG-иконки, используемые как файлы (background, img src) → `assets/icons/`
+
 ## `lib` - Утилиты и вспомогательные функции
 
 - **Структура**:
-  - `hooks` - хуки проекта
+  - `hooks` - переиспользуемые хуки проекта (используются в нескольких местах)
   - `ts` - утилиты-дженерики для TypeScript
-  - `domain` - утилиты, зависящие от бизнес-логики
+  - `business` - утилиты, зависящие от бизнес-логики
   - `utils` - чистые утилиты без контекста проекта
 
-- **Пример структуры `domain/`**:
+- **Разделение хуков**:
+  - Хук используется **только в одном компоненте** → рядом с компонентом (`ProductCard.hooks.ts`)
+  - Хук используется **в нескольких местах** → `lib/hooks/` (переиспользуемый)
+
+- **Пример структуры `business/`**:
   ```
-  domain/
-    ├── zValidators/
-    │   └── zCommon.ts           # zod-схемы для базовых кейсов
-    └── api/
-        └── convertToBack{NameTypeData}.ts  # конвертация данных для бэкенда
+  business/
+    └── formatters/
+        ├── phoneMask.ts           # Маски и форматирование полей ввода
+        ├── futureDate.ts          # Zod: дата должна быть больше текущей
+        ├── moneyAmount.ts         # Zod: валидация денежных сумм
+        └── numberFormat.ts        # Zod: обобщённая валидация чисел
   ```
+  - Примечание: обобщённые утилиты и Zod-схемы для валидации полей форм. Схемы валидации **ответов API** живут рядом с endpoint-функциями (см. «Валидация данных»).
 
 - **Пример структуры `utils/`**:
   ```
@@ -363,32 +447,42 @@ export const getUser = (id: string): Promise<UserResponseDto> =>
         └── formatPrice.ts
   ```
 
-- **Примеры сторонних библиотек**:
-  - `ymaps` — подключение Яндекс Карт
+- **Примеры**: подключение сторонних библиотек (карты, аналитика и т.д.) — обёртки в `lib/` для изоляции от проекта.
 
 ## File Naming Convention
 
 | Тип файла | Формат | Пример |
 |---|---|---|
 | Папка компонента/утилиты | `camelCase/` | `productCard/`, `radioGroup/` |
-| React-компонент | `PascalCase.tsx` | `ProductCard.tsx` |
+| Компонент | `PascalCase.tsx` | `ProductCard.tsx` |
 | Хук (привязан к компоненту) | `*.hooks.ts` | `ProductCard.hooks.ts` |
 | Утилита | `camelCase.ts` | `formatPrice.ts` |
 | Типы/интерфейсы (рядом с файлом) | `*.types.ts` | `ProductCard.types.ts` |
 | Константы | `*.constants.ts` | `routes.constants.ts` |
-| CSS Module | `*.module.css` | `productCard.module.css` |
+| Стили компонента | `*.styles.ts` / `*.module.css` и т.д. | `productCard.styles.ts` |
 | Тест | `*.test.tsx` / `*.test.ts` | `ProductCard.test.tsx` |
 | Story | `*.stories.tsx` | `ProductCard.stories.tsx` |
 | Мок | `*.mock.ts` | `userApi.mock.ts` |
 | Barrel-экспорт | `index.ts` | В каждой папке |
 
 **Правила**:
-- Один React-компонент на файл
+- Один компонент на файл
 - Только именованный экспорт (`export default` запрещён)
 - Barrel-экспорт (`index.ts`) в каждой папке
 - Типы рядом с файлом: `ProductCard.types.ts` рядом с `ProductCard.tsx`
 - Хуки рядом с компонентом: `ProductCard.hooks.ts` рядом с `ProductCard.tsx`
 - Если типы общие для нескольких файлов — в общей папке `types/` модуля
+
+**Barrel-экспорт (`index.ts`)** — что экспортирует:
+- Только **публичный API** папки: компонент, типы пропсов
+- **Не экспортирует**: внутренние хуки, утилиты, константы, тесты, stories
+- Если папка содержит несколько компонентов — экспортирует все через именованный экспорт
+- Пример:
+  ```ts
+  // components/ui/atoms/button/index.ts
+  export { Button } from './Button';
+  export type { ButtonProps } from './Button.types';
+  ```
 
 **Пример структуры компонента**:
 ```
@@ -399,7 +493,7 @@ productCard/
 ├── ProductCard.types.ts      # типы пропсов и внутренние типы
 ├── ProductCard.test.tsx      # тесты
 ├── ProductCard.stories.tsx   # storybook
-└── productCard.module.css    # стили
+└── productCard.module.css    # стили (формат зависит от проекта: CSS Modules, styled-components и т.д.)
 ```
 
 ## `components` - Компоненты приложения
@@ -420,7 +514,7 @@ productCard/
 
 - **Правила**:
   - Базовые классы, определения темы и переменных, утилитарных классов
-  - Tailwind слои (layer): `base`, `utils`, `theme`
+  - Слой содержит: базовые стили (reset/normalize), тему (цвета, токены), утилитарные стили
 - **Пример**:
   ```
   export const palette = {
@@ -433,7 +527,6 @@ productCard/
 #### `atoms/` - Примитивы
 
 - **Правила**:
-  - Tailwind слой: `components`
   - Утилитарные классы, помогающие основному классу (размер, вариант)
   - Возможны как CSS-классы, так и компоненты
 - **Пример структуры**:
@@ -482,7 +575,7 @@ productCard/
 
 - **Правила**:
   - Сложная UI-логика (анимации, сложные взаимодействия)
-  - Допускается использование UI-библиотек (Swiper, Recharts и т.д.)
+  - Допускается использование сторонних UI-библиотек (слайдеры, графики и т.д.)
 - **Пример структуры**:
   ```
   organisms/
@@ -545,6 +638,7 @@ productCard/
   - Переиспользуются в pages
   - Группировка: сначала по общему домену, потом по бизнес-домену
   - Интеграция с внешними провайдерами данных (context/store) допускается
+
 - **Пример структуры**:
   ```
   features/
@@ -558,9 +652,23 @@ productCard/
         └── columns/
             └── product/
                 ├── index.ts
-                ├── nameProductColumnTable.tsx
-                └── priceProductColumnTable.tsx
+                ├── NameProductColumnTable.tsx
+                └── PriceProductColumnTable.tsx
   ```
+
+#### Формальная граница: `patterns/` vs `features/`
+
+Критерий проверяемый — **наличие импорта из `store/` или `services/`**:
+
+| Критерий | `patterns/` | `features/` |
+|---|---|---|
+| Импорт из `store/` | **Запрещён** | **Обязателен** (хотя бы селектор или thunk) |
+| Импорт из `services/` | **Запрещён** | **Допускается** (через хуки) |
+| Источник данных | Только `props` | Store, context, services |
+| Переиспользуемость | Высокая (не знает домен) | Средняя (привязана к бизнес-домену) |
+| Storybook | Обязателен | Опционально |
+
+**Правило решения**: если компонент не импортирует `store/` и `services/` — он `pattern` или `ui/organism`. Если импортирует — он `features/`.
 
 ---
 
@@ -590,68 +698,36 @@ productCard/
 
 ### Структура story-файла
 
-```tsx
-// components/ui/atoms/button/Button.stories.tsx
+Story-файл описывает компонент и его состояния. Конкретный API зависит от выбранного инструмента визуальной документации (Storybook, Ladle, Histoire и т.д.), но принцип единый.
 
-import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from './Button';
+**Каждый story-файл содержит:**
 
-const meta: Meta<typeof Button> = {
-  title: 'UI/Atoms/Button',
-  component: Button,
-  tags: ['autodocs'],
-  argTypes: {
-    variant: { control: 'select' },
-    size: { control: 'select' },
-    disabled: { control: 'boolean' },
-  },
-};
+1. **Мета-описание** — название в sidebar, привязка к компоненту, тег автодокументации
+2. **Описание controls** — маппинг пропсов на типы контролов (select, boolean, radio и т.д.)
+3. **Набор stories** — каждый экспорт = одно состояние компонента
 
-export default meta;
-type Story = StoryObj<typeof Button>;
+**Обязательные stories:**
 
-// Состояние по умолчанию
-export const Default: Story = {
-  args: {
-    children: 'Нажми меня',
-  },
-};
+| Story | Назначение |
+|---|---|
+| `Default` | Состояние по умолчанию, отображается при первом открытии |
+| Все значения enum-пропсов | Визуальное покрытие всех вариантов (`variant`, `size` и т.д.) |
 
-// Все варианты
-export const Variants: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <Button variant="primary">Primary</Button>
-      <Button variant="secondary">Secondary</Button>
-      <Button variant="ghost">Ghost</Button>
-    </div>
-  ),
-};
+**Желательные stories:**
 
-// Состояния
-export const Disabled: Story = {
-  args: {
-    children: 'Неактивна',
-    disabled: true,
-  },
-};
-
-export const Loading: Story = {
-  args: {
-    children: 'Загрузка',
-    loading: true,
-  },
-};
-```
+| Story | Назначение |
+|---|---|
+| Loading / Disabled | Состояния взаимодействия |
+| Edge cases | Длинный текст, пустое содержимое, граничные значения |
+| Адаптив | Проверка через viewport toolbar |
 
 ### Правила
 
 - **Один story-файл на компонент**: `Button.stories.tsx` — не `Button.variants.stories.tsx` + `Button.states.stories.tsx`
-- **`tags: ['autodocs']`**: обязателен — генерирует автоматическую документацию из TypeScript-типов
-- **`argTypes`**: описывать для всех пропсов с ограниченным набором значений (`select`, `boolean`, `radio`)
-- **Stories как функции**: `render` для составных демонстраций (несколько вариантов рядом), `args` для простых состояний
+- **Автодокументация**: включать тег автодокументации — генерирует документацию из типов
+- **Controls**: описывать для всех пропсов с ограниченным набором значений
 - **Naming экспорта**: `PascalCase`, на русском или английском — зависит от проекта, но единообразно. `Default` — обязательная story (отображается по умолчанию)
-- **Изоляция**: story не должна зависеть от `store/`, `services/`, роутера. Если компоненту нужен провайдер — оборачивать в story через `decorators`
+- **Изоляция**: story не должна зависеть от `store/`, `services/`, роутера. Если компоненту нужен провайдер — оборачивать через decorator/обёртку
 - **Mock-данные**: использовать инлайн-данные, не импортировать из `mocks/`. Story должна быть самодостаточной
 
 ### Storybook-таксономия (структура sidebar)
@@ -678,14 +754,7 @@ Business/
     Card
 ```
 
-Структура sidebar задаётся через `title` в meta:
-```ts
-// title формирует путь в sidebar: "UI/Atoms/Button"
-const meta: Meta<typeof Button> = {
-  title: 'UI/Atoms/Button',
-  // ...
-};
-```
+Структура sidebar задаётся через мета-описание story. Иерархия соответствует структуре UI-кита:
 
 ### Что story демонстрирует для каждого компонента
 
