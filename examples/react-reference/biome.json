@@ -63,6 +63,10 @@
   "linter": {
     "enabled": true,
     "rules": {
+      "correctness": {
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error"
+      },
       "preset": "recommended",
       "style": {
         "noDefaultExport": "error",
@@ -72,11 +76,112 @@
   },
   "overrides": [
     {
-      "includes": ["vite.config.ts", "eslint.config.js", "**/*.stories.tsx", ".storybook/**"],
+      "includes": ["vite.config.ts", "**/*.stories.tsx", ".storybook/**"],
       "linter": {
         "rules": {
           "style": {
             "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/lib/utils/**/*.ts", "src/pages/**/utils/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConsistentArrowReturn": {
+              "level": "error",
+              "options": {
+                "style": "always"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/components/ui/**/*.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/services",
+                      "@/services/**",
+                      "@/store",
+                      "@/store/**",
+                      "@/app",
+                      "@/app/**",
+                      "@/components/business",
+                      "@/components/business/**",
+                      "**/services",
+                      "**/services/**",
+                      "**/store",
+                      "**/store/**",
+                      "**/app",
+                      "**/app/**",
+                      "@/pages",
+                      "@/pages/**",
+                      "**/pages",
+                      "**/pages/**",
+                      "@/routes",
+                      "@/routes/**",
+                      "**/routes",
+                      "**/routes/**",
+                      "**/business",
+                      "**/business/**"
+                    ],
+                    "message": "UI не зависит от сервисов, состояния приложения или бизнес-сценариев."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/services/**/*.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/app",
+                      "@/app/**",
+                      "@/components",
+                      "@/components/**",
+                      "@/store",
+                      "@/store/**",
+                      "**/app",
+                      "**/app/**",
+                      "@/pages",
+                      "@/pages/**",
+                      "**/pages",
+                      "**/pages/**",
+                      "@/routes",
+                      "@/routes/**",
+                      "**/routes",
+                      "**/routes/**",
+                      "**/components",
+                      "**/components/**",
+                      "**/store",
+                      "**/store/**"
+                    ],
+                    "message": "Services не зависят от app, components и store."
+                  }
+                ]
+              }
+            }
           }
         }
       }

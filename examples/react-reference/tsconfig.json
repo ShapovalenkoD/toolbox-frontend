@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "allowImportingTsExtensions": true,
-    "baseUrl": ".",
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -11,8 +10,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@/*": ["src/*"],
-      "@config": ["config/index.ts"]
+      "@/*": ["./src/*"],
+      "@config": ["./config/index.ts"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,

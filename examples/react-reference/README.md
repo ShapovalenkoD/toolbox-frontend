@@ -51,6 +51,16 @@ npm run storybook
 
 Форма передаёт значения страницы, а не transport DTO. Сервисная mutation возвращает сырой DTO. Pending и ошибка запроса принадлежат TanStack Query, dirty/валидация/submitting — React Hook Form. Отдельная копия сетевого состояния в store не создаётся.
 
+## Проверка версий
+
+Зависимости проверены по npm latest 21 сентября 2026 года: Vite 8.3.0, React plugin 6.1.1, TypeScript 7.0.2, Biome 2.5.14, React 19.3.0, Storybook 10.6.0. Минимумы диапазонов package.json обновлены до проверенных версий; точные версии фиксирует package-lock.json.
+
+Исключение: @types/node 22.20.4 соответствует принятой среде Node 22, а не последней ветке типов Node 26. Проверка выполняется на Node 22.19.0. Системная версия Node этим обновлением не меняется.
+
+В tsconfig удалён baseUrl; пути aliases явно относительны tsconfig: ./src/* и ./config/index.ts. Vite использует соответствующие resolve.alias. TypeScript проверяет типы, Vite собирает приложение, Biome независимо форматирует и анализирует исходный код. Правила Biome и его schema проверяются отдельно при обновлении.
+
+При создании нового приложения версии повторно проверяются по [правилу актуальности](../../docs/ReactPreferences.md#актуальность-версий), а не копируются из этого снимка. См. [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) и [Vite 8](https://vite.dev/blog/announcing-vite8).
+
 ## Паспорт примера
 
 | Решение | Выбор и причина |
@@ -60,7 +70,7 @@ npm run storybook
 | HTTP | Axios; один общий HttpClient |
 | Запросы | TanStack Query; mutation не повторяет POST автоматически |
 | UI | Глобальные CSS-классы atoms; CSS Modules для локальных композиций; clsx |
-| Форматирование | Biome; ESLint дополняет пустые строки, React hooks и базовые ограничения импортов |
+| Форматирование | Только Biome: форматирование, lint, hooks и ограничения импортов; пустые строки проверяются при ревью |
 | UI-документация | Storybook React/Vite + Autodocs |
 | Моки | MSW в отдельной демонстрационной точке входа |
 | Tailwind | Пока не подключён; допустимый вариант, при выборе обязателен tailwind-merge и сортировка классов |
@@ -77,9 +87,9 @@ npm run storybook
 |---|---|
 | npm run dev | Демо с MSW |
 | npm run dev:api | Приложение с настроенным API |
-| npm run format | Biome + ESLint: исправление оформления |
+| npm run format | Biome: исправление оформления |
 | npm run format:check | Оформление, сортировки и дополнительные правила без записи |
-| npm run lint | Правила Biome и ESLint |
+| npm run lint | Правила Biome |
 | npm run typecheck | TypeScript, включая stories и конфигурацию Storybook |
 | npm run build | Проверка типов и production-сборка |
 | npm run preview | Просмотр production-сборки с настоящим настроенным API |
@@ -87,7 +97,7 @@ npm run storybook
 | npm run build:storybook | Статическая сборка Storybook |
 | npm run check | format:check + typecheck + production build |
 
-Правила no-restricted-imports проверяют указанные шаблоны импортов. Это не полный графовый анализ зависимостей: происхождение реэкспортов и публичный API дополнительно проверяются при ревью. Самописного линтера нет.
+Правила Biome noRestrictedImports проверяют указанные шаблоны импортов. Это не полный графовый анализ зависимостей: происхождение реэкспортов и публичный API дополнительно проверяются при ревью. Самописного линтера нет.
 
 ## Учебный API
 
