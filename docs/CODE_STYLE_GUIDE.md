@@ -106,5 +106,36 @@ if (isNaN(f)) handleError();
 
 ## React
 
-- Деструктуризация `props` в начале функции компонента — помогает линтеру находить неиспользуемые props.
+Архитектурная классификация определена в [полной структуре](ProjectStructure.full.md#граница-organisms-patterns-и-features). Правила компонентов ниже относятся к существующим React-компонентам: CSS-атом не требует создания компонента или props-интерфейса.
+
+- `props` принимаем как аргумент, деструктуризируем **на следующей строке** в теле функции:
+  ```tsx
+  // Правильно
+  const Button = (props: ButtonProps) => {
+    const { variant, children, onClick } = props;
+
+  // Неправильно
+  const Button = ({ variant, children, onClick }: ButtonProps) => {
+  ```
 - Один файл = одна компонента.
+- Интерфейсы props выносим в companion-файл `PascalCase.interface.ts` рядом с компонентом.
+
+### Обработчики событий
+
+У UI-компонента callback сообщает о взаимодействии. У business pattern callback может представлять операцию, результат которой pattern ожидает и обрабатывает. Названия отражают смысл: `onSortChange` для события, `saveChanges` для операции. Само наличие callback не делает UI-компонент бизнес-компонентом.
+
+Именованные функции в теле компонента, **не** стрелочные в JSX:
+
+```tsx
+// Правильно
+const handleClick = () => { /* ... */ };
+return <button onClick={handleClick}>;
+
+// Неправильно
+return <button onClick={() => { /* ... */ }}>
+```
+
+Исключение: тривиальные делегаты с параметром допустимы:
+```tsx
+return <button onClick={() => onRemove(id)}>Удалить</button>
+```
