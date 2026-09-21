@@ -1,8 +1,36 @@
 # Code Style Guide
 
-> Именование файлов, barrel-экспорт — см. [ProjectStructure.md](ProjectStructure.md#file-naming-convention).
+> Основной документ для именования и соглашений о коде. Размещение и [публичный API](ProjectStructure.md#дерево-публичных-экспортов) определены в краткой структуре. [Роли документов](../README.md#документация).
 
 ---
+
+## File Naming Convention
+
+**Общее правило**: `PascalCase` для React-компонентов (`.tsx`) и всех файлов-компаньонов компонента. `camelCase` для всего остального.
+
+| Тип файла                           | Формат                                         | Пример                        |
+| ----------------------------------- | ---------------------------------------------- | ----------------------------- |
+| Папка компонента/утилиты            | `camelCase/`                                   | `productCard/`, `radioGroup/` |
+| Компонент                           | `PascalCase.tsx`                               | `ProductCard.tsx`             |
+| Хук (привязан к компоненту)         | `PascalCase.hooks.ts`                          | `ProductCard.hooks.ts`        |
+| Интерфейсы (привязаны к компоненту) | `PascalCase.interface.ts`                      | `ProductCard.interface.ts`    |
+| Тест (привязан к компоненту)        | `PascalCase.test.tsx`                          | `ProductCard.test.tsx`        |
+| Story (привязан к компоненту)       | `PascalCase.stories.tsx`                       | `ProductCard.stories.tsx`     |
+| Стили компонента                    | `camelCase.module.css` / `camelCase.styles.ts` | `productCard.module.css`      |
+| Утилита                             | `camelCase.ts`                                 | `formatPrice.ts`              |
+| Константы                           | `camelCase.constants.ts`                       | `routes.constants.ts`         |
+| Мок                                 | `camelCase.mock.ts`                            | `userApi.mock.ts`             |
+| Barrel-экспорт                      | `index.ts`                                     | В папках с публичными экспортами |
+
+**Правила**:
+
+- Один компонент на файл
+- Именованный экспорт в прикладном коде; обязательные default exports фреймворков и инструментов допускаются — см. [правила экспорта](#экспорт).
+- Файлы-компаньоны компонента (`.hooks.ts`, `.interface.ts`, `.test.ts`, `.stories.tsx`) наследуют PascalCase от компонента
+- Стили — всегда camelCase: `productCard.module.css`, `productCard.styles.ts`
+- Собственные интерфейсы — в отдельном файле рядом с реализацией: `ProductCard.interface.ts` рядом с `ProductCard.tsx`. Если интерфейсов нет, пустой файл не создаём.
+- Хуки рядом с компонентом: `ProductCard.hooks.ts` рядом с `ProductCard.tsx`
+- Если интерфейсы общие для нескольких файлов — в общей папке `types/` модуля
 
 ## TypeScript
 
@@ -26,7 +54,7 @@
 
 ### Интерфейсы
 
-Собственные интерфейсы выносим в отдельный файл `*.interface.ts`, даже для небольшого компонента или утилиты. Если собственных интерфейсов нет, пустой файл не создаём. Для маленьких модулей допустим один файл `interface.ts`. Наличие интерфейса в отдельном файле не означает его обязательный экспорт через публичный индекс. См. также [File Naming Convention](ProjectStructure.md#file-naming-convention).
+Собственные интерфейсы выносим в отдельный файл `*.interface.ts`, даже для небольшого компонента или утилиты. Если собственных интерфейсов нет, пустой файл не создаём. Для маленьких модулей допустим один файл `interface.ts`. Наличие интерфейса в отдельном файле не означает его обязательный экспорт через публичный индекс. См. также [File Naming Convention](#file-naming-convention).
 
 ### Type assertions
 
