@@ -1,0 +1,10 @@
+:root {
+  font-family: Inter, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+button,
+input {
+  font: inherit;
+}

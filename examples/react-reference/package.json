@@ -1,0 +1,54 @@
+{
+  "dependencies": {
+    "@hookform/resolvers": "^5.0.0",
+    "@tanstack/react-query": "^5.0.0",
+    "axios": "^1.0.0",
+    "clsx": "^2.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/react-vite": "^10.6.0",
+    "@stylistic/eslint-plugin": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "msw": "^2.0.0",
+    "storybook": "^10.6.0",
+    "typescript": "~5.9.0",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "demo/public"
+    ]
+  },
+  "name": "toolbox-react-reference",
+  "private": true,
+  "scripts": {
+    "build": "npm run typecheck && vite build",
+    "build:storybook": "storybook build --disable-telemetry",
+    "check": "npm run format:check && npm run build",
+    "dev": "vite --mode demo --host 127.0.0.1 --open /demo.html",
+    "dev:api": "vite --host 127.0.0.1",
+    "format": "eslint . --fix && biome check --write . && eslint .",
+    "format:check": "biome check . && eslint .",
+    "lint": "biome lint . && eslint .",
+    "preview": "vite preview --host 127.0.0.1",
+    "storybook": "storybook dev -p 6006 --host 127.0.0.1 --no-open --disable-telemetry",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

@@ -11,15 +11,17 @@
 
 ## Внутри `src/`
 
-- [`app/`](ProjectStructure.full.md#app---точка-входа-приложения) - точка входа в приложение: провайдеры, роутинг, страницы. **Не содержит** конфигурацию store.
+- [`app/`](ProjectStructure.full.md#app---точка-входа-приложения) - точка входа и композиция провайдеров. **Не содержит** конфигурацию store.
+- `pages/` — модули страниц с локальными компонентами, интерфейсами и преобразованиями.
+- `routes/` — конфигурация маршрутов и guards, когда маршрутизация нужна. При обязательной структуре framework (например, Next.js) следуем ей.
 - [`components/`](ProjectStructure.full.md#components---компоненты-приложения) - общая папка для всех компонентов.
   - `business/` - компоненты прикладных сценариев и специфичной для проекта композиции
     - `layouts/` - переиспользуемое расположение областей приложения; без управления данными и прикладными операциями
     - `patterns/` - настраиваемые сценарии, получающие данные, правила и операции через props: DataGrid объединяет Table и Pagination и управляет загрузкой
     - `features/` - конкретные бизнес-сценарии; могут подключать services и store
   - `ui/` - общая папка для UI-кита
-    - `foundation/` - глобальные стилевые константы с их типами
-    - `atoms/` - стили и классы HTML-примитивов, локальные стилевые токены, stories; без production React-компонентов
+    - `foundation/` - глобальные стили по отдельным файлам: цвета, типографика, reset, токены, базовые правила
+    - `atoms/` - глобальные CSS-классы HTML-примитивов (button, button-size-lg, button-variant-primary), stories; без production React-компонентов
     - `molecules/` - небольшие UI-композиции: TextField, LoadingButton
     - `organisms/` - сложный UI: Table, Pagination с вычислением окна страниц и переходов; не управляют внешними операциями
 - [`constants/`](ProjectStructure.full.md#constants---глобальные-константы-приложения) - глобальные константы проекта (regex, роуты, общие значения).
@@ -115,7 +117,7 @@ components/index.ts
 - Публичность относительна границе: `utils/cardFromDto/index.ts` открывает конвертер странице, но страница не реэкспортирует его в свой внешний API. Группирующий `utils/index.ts` может собирать такие экспорты внутри страницы; это не делает их общими для других страниц.
 - Импорт из общего barrel допустим, только если все его исполняемые реэкспорты разрешены потребителю. Например, UI использует `lib/utils` или конкретный допустимый модуль, а не корневой `lib`, собирающий также бизнес-утилиты. Для type-only импорта проверяется происхождение выбранного типа.
 - Корневой barrel не отменяет архитектурные границы: UI не импортирует из `components/index.ts`, объединяющего UI и business. Внутри дерева используются индексы разрешённых нижележащих/соседних модулей без циклов. Код app может использовать корневой components API.
-- CSS Modules могут предоставлять именованный экспорт объекта классов через индекс, например `export { default as buttonStyles } from "./button.module.css";`. Это адаптация контракта CSS Modules, а не default export прикладного модуля.
+- CSS Modules могут предоставлять именованный экспорт объекта классов через индекс, например `export { default as cardStyles } from "./card.module.css";`; atoms используют обычный CSS. Это адаптация контракта CSS Modules, а не default export прикладного модуля.
 - Глобальный CSS подключается как stylesheet ради применения стилей; искусственный TypeScript-экспорт для него не нужен. CSS-only папка без публичного JS/TS API не требует пустого `index.ts`.
 
 ### Модуль утилиты
@@ -152,16 +154,17 @@ productCard/
 
 | Кто | Допустимые зависимости |
 |---|---|
-| app / страницы | components, services, store, lib, constants, config |
+| app / routes | pages, components, services, store, lib, constants, config |
+| pages | components, services, store, lib, constants, config |
 | business/features | UI, patterns, layouts, services, store, lib, constants, config |
 | business/patterns | UI, layouts, lib, constants; DTO-типы services только для собственного входного контракта/конвертеров |
 | business/layouts | UI, lib/utils, constants |
 | UI | Собственные UI-модули, lib/utils, общие UI-хуки lib/hooks и type-only утилиты lib/ts; без бизнес-контекста |
 | services | Другие сервисные модули, lib, constants, config |
 | store | Собственные модули store, lib, constants; без services и DTO |
-| lib | Другие lib-модули, constants; без services, store, components и app |
+| lib | Другие lib-модули, constants; без services, store, components, app, routes и pages |
 | constants | Без зависимостей от остальных зон |
-| config | Без зависимостей от app, components, services и store |
+| config | Без зависимостей от app, routes, pages, components, services и store |
 
 Внешние библиотеки допустимы в соответствии с ответственностью слоя. Внутренние зависимости не должны образовывать циклы. UI-композиция направлена от organisms к molecules/atoms/foundation, от molecules к atoms/foundation и от atoms к foundation; нижние уровни не импортируют верхние. Композиция модулей одного UI-уровня допускается без циклов, если не нарушает их ответственность.
 
@@ -170,7 +173,7 @@ productCard/
 - Patterns не импортируют исполняемые services/store, в том числе через промежуточные хуки. Переданные операции через props разрешены.
 - UI не импортирует бизнес-модули, services, store или DTO-типы и не получает операции доступа к данным как зависимости.
 - Страница не импортирует локальные конвертеры другой страницы; общий сценарий выделяется целиком в business.
-- Рабочий код не импортирует mocks. Тесты и stories могут импортировать общие моки; их настройки изоляции описаны в [разделе mocks](ProjectStructure.full.md#mocks---моковые-данные-для-тестов-и-разработки).
+- Production-код не импортирует mocks. Тесты, stories и отдельная точка входа демо могут импортировать общие моки; их настройки изоляции описаны в [разделе mocks](ProjectStructure.full.md#mocks---моковые-данные-для-тестов-и-разработки).
 - Ограничения распространяются на относительные пути, алиасы и реэкспорты. Исключение для DTO-типов patterns не разрешает runtime-импорт.
 
 Контракты ответственности и примеры: [полная версия](ProjectStructure.full.md). Правила imports должны быть отражены в конфигурации линтера проекта; одного наличия таблицы недостаточно.

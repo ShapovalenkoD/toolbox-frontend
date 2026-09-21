@@ -1,0 +1,85 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              ":NODE:",
+              ":BLANK_LINE:",
+              [":PACKAGE:", "!@config", "!@/**", "!:STYLE:"],
+              ":BLANK_LINE:",
+              ["@/**", "@config", "!:STYLE:"],
+              ":BLANK_LINE:",
+              ["../**", "!:STYLE:"],
+              ":BLANK_LINE:",
+              ["./**", "!:STYLE:"],
+              ["**", "!:STYLE:"],
+              ":BLANK_LINE:",
+              ":STYLE:"
+            ],
+            "sortBareImports": true
+          }
+        },
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on",
+        "useSortedProperties": "on"
+      }
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!**/storybook-static",
+      "!!demo/public",
+      "!package-lock.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "noDefaultExport": "error",
+        "useBlockStatements": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["vite.config.ts", "eslint.config.js", "**/*.stories.tsx", ".storybook/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ]
+}

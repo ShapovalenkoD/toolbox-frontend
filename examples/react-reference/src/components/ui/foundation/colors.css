@@ -1,0 +1,15 @@
+:root {
+  --color-text: #24352e;
+  --color-muted: #6b7871;
+  --color-accent: #2e654f;
+  --color-accent-hover: #244f3e;
+  --color-surface: #fff;
+  --color-border: #dfe5de;
+  --color-danger: #a33739;
+  --color-danger-soft: #fff6f5;
+  --color-danger-border: #ebcdcb;
+  --color-background: #f6f7f3;
+  --color-focus: #86b7a1;
+  --color-placeholder: #939e96;
+  --color-disabled: #f3f5f1;
+}
