@@ -26,7 +26,7 @@
 
 ### Интерфейсы
 
-Интерфейсы выносим в отдельный файл `*.interface.ts`. Для маленьких модулей допустим один файл `interface.ts`. См. также [File Naming Convention](ProjectStructure.md#file-naming-convention).
+Собственные интерфейсы выносим в отдельный файл `*.interface.ts`, даже для небольшого компонента или утилиты. Если собственных интерфейсов нет, пустой файл не создаём. Для маленьких модулей допустим один файл `interface.ts`. Наличие интерфейса в отдельном файле не означает его обязательный экспорт через публичный индекс. См. также [File Naming Convention](ProjectStructure.md#file-naming-convention).
 
 ### Type assertions
 
@@ -153,7 +153,7 @@ export const DefaultConfig = {
   const Button = ({ variant, children, onClick }: ButtonProps) => {
   ```
 - Один файл = одна компонента.
-- Интерфейсы props выносим в companion-файл `PascalCase.interface.ts` рядом с компонентом.
+- Собственные интерфейсы props выносим в companion-файл `PascalCase.interface.ts` рядом с компонентом. При отсутствии собственных интерфейсов файл не создаём.
 
 ### Обработчики событий
 
