@@ -1,6 +1,6 @@
 # Code Style Guide
 
-> Именование файлов, barrel-экспорт, запрет `export default` — см. [ProjectStructure.md](ProjectStructure.md#file-naming-convention).
+> Именование файлов, barrel-экспорт — см. [ProjectStructure.md](ProjectStructure.md#file-naming-convention).
 
 ---
 
@@ -42,15 +42,34 @@ const foo = { bar: 123, bam: "abc" } as Foo;
 
 ### Spread оператор
 
-Тип spread-значения должен соответствовать создаваемому. Объект spread-ит объекты, массив — итерируемые. Примитивы, `null`, `undefined` не spread-ятся.
+**Объектный spread** копирует собственные перечисляемые свойства. В JavaScript `null` и `undefined` пропускаются; boolean и number не добавляют свойств, а строка может добавить свойства с индексами символов. Это не означает, что любые примитивы следует использовать как объект в TypeScript: выражение также должно проходить проверку типов.
+
+Для условного добавления свойств используем явную объектную ветку; `...(condition && object)` тоже допустим, если типы выражения это позволяют.
 
 ```ts
-// Правильно
-const bar = { num: 5, ...(shouldUseFoo && foo) };
+const includeLabel = true;
+const extra = { label: "Название" };
+const result = { id: 1, ...(includeLabel ? extra : {}) };
 
-// Неправильно — может быть undefined
-const bar = { num: 5, ...(condition && obj) };
+// Необязательный объект: отсутствие значения явно заменяется пустым объектом.
+const withLabel = (value: { label: string } | undefined) => ({
+  id: 1,
+  ...(value ?? {}),
+});
 ```
+
+**Spread в массиве** требует итерируемое значение. Для условного добавления элементов используем пустой массив в альтернативной ветке.
+
+```ts
+const includeExtra = false;
+const extraItems = [2, 3];
+const items = [1, ...(includeExtra ? extraItems : [])];
+
+// Неправильно: при false получаем неитерируемое значение.
+// const items = [1, ...(includeExtra && extraItems)];
+```
+
+Оба вида spread создают поверхностную копию: вложенные объекты не клонируются рекурсивно. Семантика object spread: [ECMAScript CopyDataProperties](https://tc39.es/ecma262/multipage/abstract-operations.html#sec-copydataproperties).
 
 ### Поля классов
 
@@ -83,8 +102,24 @@ if (isNaN(f)) handleError();
 
 ### Экспорт
 
-- Только именованный экспорт (`export default` запрещён).
-- Не экспортируем мутабельные объекты (`export let` запрещён).
+- В собственном прикладном коде используем именованный экспорт.
+- `export default` разрешён, если его требует контракт выбранного фреймворка или инструмента: например, страницы и layouts Next.js App Router, метаданные Storybook CSF 3, соответствующие конфигурационные файлы. Исключение относится к конкретному файлу, не ко всей папке. Учитываем формат и версию инструмента.
+- Правила линтера должны учитывать эти исключения. Не заменяем обязательный default export именованным ради общего соглашения. См. [Next.js layout](https://nextjs.org/docs/app/api-reference/file-conventions/layout) и [Storybook CSF 3](https://storybook.js.org/docs/9/api/csf).
+- `export let` запрещён: изменяемая экспортируемая привязка затрудняет отслеживание состояния.
+- `export const` запрещает переназначение привязки, но **не запрещает изменение свойств объекта или элементов массива**.
+- Публичные объекты-константы предоставляем через readonly-типы; для литералов подходит `as const`. Это ограничение TypeScript, а не runtime-заморозка. Если нужна runtime-защита, `Object.freeze` замораживает только сам объект, без рекурсивной заморозки вложенных объектов.
+- Изменяемое состояние принадлежит модулю-владельцу и изменяется через его явные операции, а не произвольной записью потребителя в экспортированный объект.
+
+```ts
+export const DefaultConfig = {
+  pageSize: 20,
+} as const;
+
+// Ошибка TypeScript:
+// DefaultConfig.pageSize = 50;
+```
+
+Подробнее о compile-time ограничениях: [TypeScript readonly properties](https://www.typescriptlang.org/docs/handbook/2/objects.html#readonly-properties).
 
 ---
 
