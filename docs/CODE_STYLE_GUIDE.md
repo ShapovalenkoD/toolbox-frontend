@@ -6,7 +6,7 @@
 
 ## File Naming Convention
 
-**Общее правило**: `PascalCase` для React-компонентов (`.tsx`) и всех файлов-компаньонов компонента. `camelCase` для всего остального.
+**Общее правило**: `PascalCase` для React-компонентов и их companion-файлов, кроме стилей; стили и прочий код — `camelCase`. Имена, требуемые инструментом (`page.tsx`, `layout.tsx`, конфигурационные файлы), следуют его контракту; ресурсы в assets — правилу своего раздела.
 
 | Тип файла                           | Формат                                         | Пример                        |
 | ----------------------------------- | ---------------------------------------------- | ----------------------------- |
@@ -44,9 +44,11 @@
 | Enum | UpperCamelCase | `HttpStatus` |
 | Значения enum | CONSTANT_CASE | `OK`, `NOT_FOUND` |
 | Переменная / параметр / функция / метод | lowerCamelCase | `userName`, `getUser()` |
-| Константа-примитив | CONSTANT_CASE | `MAX_RETRIES` |
-| Константа-объект/массив | UpperCamelCase | `DefaultConfig` |
+| Константа-примитив уровня модуля | CONSTANT_CASE | `MAX_RETRIES` |
+| Константа-объект/массив уровня модуля | UpperCamelCase | `DefaultConfig` |
 | Static readonly поле | CONSTANT_CASE | `DEFAULT_TIMEOUT` |
+
+Локальные переменные, параметры и результаты вычислений сохраняют lowerCamelCase даже при `const`. Отдельное правило для констант относится к фиксированным значениям уровня модуля.
 
 ### Аббревиатуры
 
@@ -58,14 +60,17 @@
 
 ### Type assertions
 
-Используйте аннотации типов (`: Foo`) вместо type assertions (`as Foo`). Аннотация позволяет линтеру находить ошибки при рефакторинге.
+Для проверки создаваемого значения используйте аннотацию (`: Foo`) или `satisfies Foo`, а не утверждение `as Foo`. Совместимость проверяет TypeScript; assertion может скрыть ошибку и не проверяет внешние данные во время выполнения. `as const` допустим: он сохраняет литеральные типы и readonly-свойства и не подменяет проверку совместимости.
 
 ```ts
-// Правильно
-const foo: Foo = { bar: 123 };
+type Foo = { bar: number };
 
-// Неправильно — "bam" не будет поймано при изменении Foo
-const foo = { bar: 123, bam: "abc" } as Foo;
+// Правильно: при создании литерала проверяются свойства.
+const foo: Foo = { bar: 123 };
+const checkedFoo = { bar: 123 } satisfies Foo;
+
+// Неправильно для проверки контракта: assertion обходит excess-property check.
+const assertedFoo = { bar: 123, bam: "abc" } as Foo;
 ```
 
 ### Spread оператор
@@ -108,7 +113,7 @@ const items = [1, ...(includeExtra ? extraItems : [])];
 
 ### Примитивные типы
 
-Не используем классы-обёртки (`String`, `Boolean`, `Number`). `new Boolean(false)` считается `true`.
+Не используем классы-обёртки (`String`, `Boolean`, `Number`). Объект `new Boolean(false)` является truthy в условии, хотя хранит значение false.
 
 ### Array конструктор
 
@@ -116,16 +121,24 @@ const items = [1, ...(includeExtra ? extraItems : [])];
 
 ```ts
 const a = [2, 3];
-const c = Array.from<number>({ length: 5 }).fill(0);
+const c = Array.from({ length: 5 }, () => 0);
 ```
 
 ### Преобразования типов
 
-Для парсинга чисел — `Number()` с проверкой на `NaN`. Не используем унарный плюс (`+y`) — его легко пропустить на ревью. `parseInt` допустим только для недесятичных систем с проверкой входных данных.
+Для преобразования числовой строки используем `Number()`, но заранее определяем допустимый ввод. Пустая строка и пробелы дают 0, а Infinity не является NaN. Если требуется конечное число, отдельно проверяем пустоту и используем `Number.isFinite`; допустимый формат, целочисленность и диапазон определяются сценарием. Не используем унарный плюс (`+y`) — его легко пропустить на ревью. `parseInt` допустим только для недесятичных систем с проверкой входных данных.
 
 ```ts
-let f = Number(someString);
-if (isNaN(f)) handleError();
+// Фрагмент функции обработки числового поля; value — её строковый параметр.
+const trimmed = value.trim();
+if (trimmed === "") {
+  throw new Error("Число обязательно");
+}
+const parsed = Number(trimmed);
+if (!Number.isFinite(parsed)) {
+  throw new Error("Ожидается конечное число");
+}
+// Далее проверяются формат и диапазон, если это требуется контрактом поля.
 ```
 
 ### Экспорт
@@ -153,7 +166,7 @@ export const DefaultConfig = {
 
 ## Правила, покрываемые линтером
 
-Ниже — правила, которые ESLint/Prettier проверяют автоматически. Ссылки ведут на документацию правил.
+Ниже — правила для настройки ESLint/Prettier в приложении. Они проверяются автоматически только после подключения соответствующей конфигурации и команды проверки. В этом репозитории такой набор проверок пока не настроен; ссылки на правила не заменяют конфигурацию.
 
 | Правило | ESLint правило |
 |---|---|
@@ -162,8 +175,8 @@ export const DefaultConfig = {
 | `const`/`let` вместо `var` | [`no-var`](https://eslint.org/docs/rules/no-var) |
 | Порядок импортов (библиотеки → абсолютные → относительные) | [`import/order`](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/order.md) |
 | Проверка `hasOwnProperty` в `for...in` | [`guard-for-in`](https://eslint.org/docs/rules/guard-for-in) |
-| `_` префикс для неиспользуемых переменных | [`@typescript-eslint/no-unused-vars`](https://typescript-eslint.io/rules/no-unused-vars/) |
-| Длинные строки, переносы | Prettier `printWidth` |
+| `_` префикс для намеренно неиспользуемых переменных/параметров | [`@typescript-eslint/no-unused-vars`](https://typescript-eslint.io/rules/no-unused-vars/), с явными `argsIgnorePattern`/`varsIgnorePattern` для `^_` |
+| Предпочтительная ширина и переносы | Prettier `printWidth` — ориентир форматирования, не жёсткий максимум длины |
 
 ---
 
@@ -173,12 +186,21 @@ export const DefaultConfig = {
 
 - `props` принимаем как аргумент, деструктуризируем **на следующей строке** в теле функции:
   ```tsx
+  // Фрагменты двух альтернативных реализаций; TextFieldProps находится
+  // в TextField.interface.ts, labelStyles/inputStyles импортированы из atoms.
   // Правильно
-  const Button = (props: ButtonProps) => {
-    const { variant, children, onClick } = props;
+  const TextField = (props: TextFieldProps) => {
+    const { id, label, value, onChange } = props;
+    return (
+      <div>
+        <label htmlFor={id} className={labelStyles.root}>{label}</label>
+        <input id={id} value={value} onChange={onChange} className={inputStyles.root} />
+      </div>
+    );
+  };
 
-  // Неправильно
-  const Button = ({ variant, children, onClick }: ButtonProps) => {
+  // Неправильно по стилю проекта: деструктуризация в параметре.
+  // const TextField = ({ id, label, value, onChange }: TextFieldProps) => { ... };
   ```
 - Один файл = одна компонента.
 - Собственные интерфейсы props выносим в companion-файл `PascalCase.interface.ts` рядом с компонентом. При отсутствии собственных интерфейсов файл не создаём.
@@ -190,15 +212,16 @@ export const DefaultConfig = {
 Именованные функции в теле компонента, **не** стрелочные в JSX:
 
 ```tsx
+// Две альтернативы фрагмента тела компонента.
 // Правильно
 const handleClick = () => { /* ... */ };
-return <button onClick={handleClick}>;
+return <button type="button" onClick={handleClick}>Выполнить</button>;
 
-// Неправильно
-return <button onClick={() => { /* ... */ }}>
+// Неправильно по стилю проекта — обработчик с логикой внутри JSX:
+// return <button type="button" onClick={() => { /* ... */ }}>Выполнить</button>;
 ```
 
 Исключение: тривиальные делегаты с параметром допустимы:
 ```tsx
-return <button onClick={() => onRemove(id)}>Удалить</button>
+return <button type="button" onClick={() => onRemove(id)}>Удалить</button>;
 ```
