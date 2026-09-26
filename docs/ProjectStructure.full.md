@@ -14,8 +14,9 @@
 
 - **Содержит**: корневую композицию и провайдеры (store, router, theme).
 - **Не содержит**: конфигурацию store (она в store/) и модули страниц при свободной структуре проекта.
-- Страницы размещаем в src/pages/, настройку маршрутизации — в src/routes/ при её наличии. Next.js и другие framework с обязательными файловыми соглашениями имеют приоритет.
-- Страница — модуль: локальные компоненты в _components/, интерфейсы в PageName.interface.ts рядом со страницей, утилиты — в её utils/. Не создаём types/ только потому, что интерфейс используют несколько файлов страницы.
+- Страницы размещаем в src/pages/, настройку маршрутизации — в src/routes/ при её наличии. Next.js и другие framework с обязательными файловыми соглашениями имеют приоритет: при file-based routing (Next.js App Router, TanStack Router с генерируемым route tree) `pages/` не создаётся вообще — компонент экрана размещается там, где предписывает конвенция роутера (в самом route-файле или в соседнем файле, который он импортирует), а не дублируется отдельно в `pages/{page}/`. Попытка держать обе структуры параллельно (и `pages/`, и файловую структуру роутера) — ошибка, а не гибкость: одна и та же область (страницы/маршруты) организуется только одним способом.
+- При отсутствии file-based routing страница — модуль: companion-файлы экрана (PageName.interface.ts, .hooks.ts, .constants.ts, .schema.ts) рядом со страницей, локальные компоненты — в -components/, утилиты — в -utils/, самостоятельные хуки — в -hooks/. Не создаём types/ только потому, что интерфейс используют несколько файлов страницы.
+- При file-based routing те же служебные папки с префиксом `-` размещаются рядом с route-файлом экрана. Префикс единый для всех способов маршрутизации: TanStack Router исключает `-`-файлы и папки из route tree, Next.js App Router не делает маршрутом папку без page/route. `_components/` и `(children)/` не используем: в TanStack Router это pathless-маршрут и route group, файлы внутри которых становятся маршрутами.
 - Страница вызывает services, преобразует и объединяет DTO, передаёт внутренние модели в store. Короткая логика остаётся непосредственно в компоненте; companion-хук выделяется только при самостоятельной ответственности.
 - Переиспользуемый целиком сценарий переносится в business pattern или feature вместе с поведением и преобразованиями.
 
@@ -29,7 +30,7 @@ src/
       index.ts
       ProfilePage.tsx
       ProfilePage.interface.ts
-      _components/
+      -components/
         cardProfile/
           index.ts
           CardProfile.tsx
@@ -42,7 +43,7 @@ RootProvider объединяет провайдеры приложения и �
 ### Routing
 
 - **Config-based**: конфигурация в src/routes/router.tsx; страницы импортируются через pages API.
-- **File-based**: имена и сегменты определяет выбранный router/framework. Не создаём второй параллельный механизм маршрутов.
+- **File-based**: имена и сегменты определяет выбранный router/framework. Не создаём второй параллельный механизм маршрутов — а значит, и `pages/` как отдельный модуль страниц тоже не создаём: экран организован по конвенции роутера (см. выше), а не по правилам `pages/` из раздела `app`.
 - **Lazy loading**: используем механизм выбранного router/framework.
 - **Guards**: в routes/guards/ либо средствами framework; проверка UI не заменяет авторизацию на сервере.
 - Для одного экрана без маршрутизации папку routes и библиотеку router не создаём.
@@ -411,7 +412,7 @@ features/
 
 Общая транспортная механика (создание HTTP-клиента, timeout, классификация ошибок) не привязана к бизнес-сущности. Конкретная интеграция настраивает baseURL и свои протокольные особенности; её доменные методы описывают endpoint и DTO. Не называем общий транспорт именем одной сущности и не переносим специфичную авторизацию поставщика в универсальный клиент.
 
-По умолчанию у приложения один HttpClient с общей конфигурацией. Дополнительные инстансы нужны только независимым внешним интеграциям с различающимися настройками; не создаём клиент на каждую сущность или endpoint. В [исполняемом примере](../examples/react-reference/README.md): services/api/httpClient содержит единственный инстанс и обработку ошибок; services/api/connection — DTO и mutation с непосредственным вызовом клиента.
+По умолчанию у приложения один HttpClient с общей конфигурацией. Дополнительные инстансы нужны только независимым внешним интеграциям с различающимися настройками; не создаём клиент на каждую сущность или endpoint. В [скелете проекта](../examples/react-reference/README.md): services/api/httpClient содержит единственный инстанс и обработку ошибок; services/api/connection — DTO и mutation с непосредственным вызовом клиента.
 
 Если endpoint нужен только одному query/mutation-хуку, запрос выполняется прямо в его queryFn/mutationFn. Отдельный метод выделяется при самостоятельных потребителях или отдельной ответственности, а не ради одноразовой обёртки. Оба варианта остаются внутри services и возвращают DTO.
 
@@ -608,7 +609,7 @@ type ErrorCode =
 
 **Правила:**
 - Страница или feature получает сырой DTO из сервиса; pattern может получать DTO и операции через props.
-- Преобразование выполняется локально под требования потребителя. Файлы и функции называются `{entity}FromDto` и `{entity}ToDto`: например, `utils/cardFromDto/cardFromDto.ts` и `utils/cardToDto/cardToDto.ts`, каждый со своим `index.ts`.
+- Преобразование выполняется локально под требования потребителя. Файлы и функции называются `{entity}FromDto` и `{entity}ToDto`: например, `-utils/cardFromDto/cardFromDto.ts` и `-utils/cardToDto/cardToDto.ts`, каждый со своим `index.ts`.
 - Конвертеры не размещаются в `lib/`, `services/` или `store/` и не импортируются одной страницей из другой.
 - Совпадение DTO и реализации на двух страницах не является основанием для объединения: сценарии могут развиваться независимо. Одинаковые имена локальных конвертеров допустимы.
 - Если переиспользуется целый сценарий, его UI, поведение и преобразования переносятся вместе в business pattern или feature.
@@ -622,7 +623,7 @@ pages/
     index.ts
     CardEditPage.tsx
     CardEditPage.interface.ts
-    utils/
+    -utils/
       index.ts                  # Доступ внутри страницы, не общий API приложения
       cardFromDto/
         index.ts
@@ -630,7 +631,7 @@ pages/
       cardToDto/
         index.ts
         cardToDto.ts
-    _components/
+    -components/
       cardEditForm/
         index.ts
         CardEditForm.tsx
@@ -649,7 +650,7 @@ service → response DTO
 **Пример входящего преобразования** — фрагмент модуля страницы; DTO экспортируются доменным индексом `services/api/user`, локальные типы — `profilePage/ProfilePage.interface.ts`. Примеры предполагают настроенный алиас `@/` для `src/`.
 
 ```ts
-// pages/profilePage/utils/userFromDto/userFromDto.ts
+// pages/profilePage/-utils/userFromDto/userFromDto.ts
 import type { UserResponseDto } from "@/services/api/user";
 import type { UserFormValues } from "../../ProfilePage.interface";
 
@@ -664,7 +665,7 @@ export const userFromDto = (dto: UserResponseDto): UserFormValues => {
 **Пример исходящего преобразования:**
 
 ```ts
-// pages/profilePage/utils/userToDto/userToDto.ts
+// pages/profilePage/-utils/userToDto/userToDto.ts
 import type { UserRequestDto } from "@/services/api/user";
 import type { UserFormValues } from "../../ProfilePage.interface";
 
@@ -724,22 +725,129 @@ Store владеет внутренним состоянием приложен�
 - Доступ к API, localStorage, sessionStorage, cookies и обмену между вкладками остаётся в services. Страница/feature организует чтение, преобразование и запись; store не подключает storage самостоятельно.
 - Имена файлов зависят от выбранного state-менеджера.
 - Каждый домен получает отдельную папку.
+- На доменную папку и на корень `store/` распространяется общее правило публичного API: у каждой папки с публичными экспортами есть `index.ts` ([дерево публичных экспортов](ProjectStructure.md#дерево-публичных-экспортов)). Индекс домена открывает slice-creator, типы и селекторы корневому `store.ts`; корневой `store/index.ts` открывает страницам/features только `useStore`, типы и селекторы — slice-creator наружу не реэкспортируется.
+- `{domain}Selectors.ts` — отдельный файл для вычисляемых/производных чтений состояния (например, производная сортировка корзины), когда такая логика есть. Простое чтение поля стора не требует отдельного селектора; файл заводится по факту появления вычисления, а не заранее про запас.
 
 ```text
 store/
+  index.ts
   store.ts
+  store.interface.ts
   auth/
-    authStore.ts
+    index.ts
+    createAuthSlice.ts
+    createAuthSlice.interface.ts
     authSelectors.ts
-    types/
-      currentClient.interface.ts
-  ui/
-    uiStore.ts
-    uiSelectors.ts
   cart/
-    cartStore.ts
+    index.ts
+    createCartSlice.ts
+    createCartSlice.interface.ts
     cartSelectors.ts
 ```
+
+**Пример для Zustand** (выбранный state-менеджер фиксируется в паспорте проекта; при другом менеджере файлы называются по его соглашениям). Каждый домен — фабрика слайса своего среза `Store`; корневой `store.ts` их объединяет. Мутирующая запись внутри `set` требует middleware `immer` (пакет `immer`); без него действие обязано возвращать новый объект состояния. Третий аргумент `set` — имя действия для devtools в формате `"{domain}/{action}"`.
+
+```ts
+// store/store.interface.ts
+import type { StateCreator } from "zustand";
+
+import type { AuthSlice } from "./auth";
+import type { CartSlice } from "./cart";
+
+export type Store = AuthSlice & CartSlice;
+
+export type StateCreatorSlice<T> = StateCreator<
+  Store,
+  [["zustand/devtools", never], ["zustand/immer", never]],
+  [],
+  T
+>;
+```
+
+```ts
+// store/store.ts
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
+
+import { createAuthSlice } from "./auth";
+import { createCartSlice } from "./cart";
+import type { Store } from "./store.interface";
+
+export const useStore = create<Store>()(
+  devtools(
+    immer((...args) => ({
+      ...createAuthSlice(...args),
+      ...createCartSlice(...args),
+    })),
+  ),
+);
+```
+
+```ts
+// store/auth/createAuthSlice.interface.ts — внутренняя модель, без DTO
+export interface CurrentClient {
+  id: string;
+  fullName: string;
+}
+
+export interface AuthSlice {
+  auth: {
+    currentClient: CurrentClient | null;
+    isAuthenticated: boolean;
+    setCurrentClient: (client: CurrentClient) => void;
+    clearCurrentClient: () => void;
+  };
+}
+```
+
+```ts
+// store/auth/createAuthSlice.ts — только обновление состояния, без вызовов services
+import type { StateCreatorSlice } from "../store.interface";
+
+import type { AuthSlice } from "./createAuthSlice.interface";
+
+export const createAuthSlice: StateCreatorSlice<AuthSlice> = (set) => ({
+  auth: {
+    clearCurrentClient: () => {
+      set(
+        (state) => {
+          state.auth.currentClient = null;
+          state.auth.isAuthenticated = false;
+        },
+        false,
+        "auth/clearCurrentClient",
+      );
+    },
+    currentClient: null,
+    isAuthenticated: false,
+    setCurrentClient: (client) => {
+      set(
+        (state) => {
+          state.auth.currentClient = client;
+          state.auth.isAuthenticated = true;
+        },
+        false,
+        "auth/setCurrentClient",
+      );
+    },
+  },
+});
+```
+
+```ts
+// store/auth/index.ts — доступ корневому store.ts
+export * from "./createAuthSlice";
+export type * from "./createAuthSlice.interface";
+
+// store/index.ts — публичный API для страниц и features; индекс домена содержит
+// slice-creator, поэтому здесь для него используется именованный реэкспорт типов
+export type { AuthSlice, CurrentClient } from "./auth";
+export * from "./store";
+export type * from "./store.interface";
+```
+
+Владелец сценария (страница/feature) получает DTO из `services/api/auth`, вызов выхода/входа и работу с токеном делает сам через `services`, и только после этого вызывает `useStore.getState().auth.setCurrentClient(...)` — store не импортирует `services` ни при каких обстоятельствах, включая косвенный вызов внутри действия слайса.
 
 ### Server state и внутреннее состояние
 
@@ -792,38 +900,51 @@ API DTO + storage DTO
 
 Требование stories действует по умолчанию. Отсутствие настроенного инструмента — незавершённый этап внедрения, а не автоматическое исключение. Отказ от Storybook или его замена требуют явного решения владельца проекта; после согласования в паспорте фиксируются причина и альтернативный способ проверки UI. Маленький размер проекта и CSS-реализация атомов не дают автоматического исключения. Установку инструмента выполняют в рамках задачи на настройку, а недоступные проверки отражают в отчёте.
 
-### Структура story-файла
+### Формат: CSF 3, а не статичная разметка
 
-Story-файл описывает компонент или CSS-примитив и его состояния. Ниже используются термины Storybook; при другом инструменте соответствующие API фиксируются в паспорте проекта.
+Story-файл — CSF 3: изменяемое задаётся через `args` (значения по умолчанию) и `argTypes` с контролом в мета-описании, а не разметкой, повторённой в каждом экспорте.
 
-**Каждый story-файл содержит:**
+**Соответствие типа пропа и контрола:**
 
-1. **Мета-описание** — название в sidebar, привязка к компоненту, если он существует, и настройка документации. Для CSS-атомов используется демонстрационная HTML-разметка, production-компонент не требуется.
-2. **Описание controls** — маппинг пропсов на типы контролов (select, boolean, radio и т.д.)
-3. **Набор stories** — каждый экспорт story описывает состояние; метаданные и технические экспорты следуют контракту инструмента.
+| Тип пропа | Контрол |
+| --- | --- |
+| enum | `inline-radio` или `select` с `options` |
+| boolean | `boolean` |
+| текст | `text` |
+| число | `number` |
+| данные (объект/массив) | `object` |
+| иконка из каталога | `select` по ключам каталога |
+| ReactNode-слот | `control: false` или `mapping` из готовых пресетов |
+| `null` в enum | опция `"none"` плюс `mapping` |
 
-**Обязательные stories:**
+Callbacks передаются через `fn()` из `storybook/test`, чтобы вызовы были видны во вкладке Actions — не через инлайн-заглушки вроде `() => {}`.
 
-| Story                     | Назначение                                                    |
-| ------------------------- | ------------------------------------------------------------- |
-| `Default`                 | Базовое состояние по соглашению проекта; имя не задаёт порядок открытия |
-| Все значения enum-пропсов | Визуальное покрытие всех вариантов (`variant`, `size` и т.д.) |
+**React-компонент**: `component` указывается в мета-описании, props берутся из `args`. `render` пишется только при необходимости обёртки — по ширине контейнера или для раскладки нескольких инстансов рядом.
 
-**Желательные stories:**
+**CSS-атом без production React-компонента**: свой тип `args` (например, `Meta<ButtonArgs>`) и одна функция `render(args)`, которая собирает разметку (`clsx` для классов, `disabled`, `aria-*`). Статичная HTML-разметка без `args`/`argTypes` допустима только для справочников без параметров — палитры, шкалы типографики.
 
-| Story              | Назначение                                           |
-| ------------------ | ---------------------------------------------------- |
-| Loading / Disabled | Состояния взаимодействия                             |
-| Edge cases         | Длинный текст, пустое содержимое, граничные значения |
-| Адаптив            | Проверка через viewport toolbar                      |
+`args` мета-описания действуют на все истории файла; групповая история переопределяет только своё измерение через собственный `args`, а остальные props наследует из мета-`args`.
+
+### Обязательный набор историй
+
+| Story | Назначение |
+| --- | --- |
+| `Default` | Площадка с полным набором `argTypes` — можно покрутить любой параметр |
+| Групповая история на каждое enum-измерение (`Variants`, `Sizes`, `Kinds`…) | Все значения измерения показаны рядом, с подписью над каждым; само измерение скрыто из Controls через `table: { disable: true }` |
+| `States` | Все нефункциональные состояния вместе: обычное, disabled, loading, error, selected |
+| `Overflow` | Переполнение: длинный текст, пустое содержимое, много тегов или элементов |
+
+Отдельная story на каждое значение измерения (`Primary`, `SizeSm` и т. п.) не создаётся — их показывает групповая история. Отдельная story заводится только для самостоятельного сценария, который не укладывается в перечисленные: `Interactive` (с `useState` в именованной обёртке), `Conflict`, `Mobile`, `List`.
+
+Раскладка групповых историй — через общие хелперы (`StoryGrid`/`StoryItem` в `mocks/`), а не копированием inline-стилей в каждый файл.
 
 ### Правила
 
-- **Один story-файл на компонент**: `Button.stories.tsx` — не `Button.variants.stories.tsx` + `Button.states.stories.tsx`
-- **Автодокументация**: для компонентов включать механизм, поддерживаемый выбранной версией инструмента. Для CSS-атомов документировать классы и состояния вручную: props production-компонента у них нет.
-- **Controls**: описывать для props с ограниченным набором значений; у CSS-атомов controls управляют демонстрационной разметкой.
-- **Naming экспорта**: английский `PascalCase`. Отображаемое название может быть русским. `Default` — обязательное имя базовой story по соглашению проекта, а порядок задаётся настройками и порядком stories выбранного инструмента.
-- **Изоляция**: story не обращается к реальным внешним сервисам. Patterns получают тестовые callbacks с управляемым результатом; для features при необходимости используются изолированные провайдеры и тестовое состояние.
+- **Один story-файл на компонент**: `Button.stories.tsx` — не `Button.variants.stories.tsx` + `Button.states.stories.tsx`.
+- **Автодокументация**: `tags: ["autodocs"]` в мета-описании; описание компонента — в `parameters.docs.description.component`. Для CSS-атомов документировать классы и состояния там же вручную — props production-компонента у них нет.
+- **`title` по таксономии**: `UI/Atoms|Molecules|Organisms|Foundation/<Name>` или `Business/Layouts|Patterns/<Name>` — см. [таксономию](#storybook-таксономия-структура-sidebar) ниже.
+- **Naming экспорта**: английский `PascalCase`. Отображаемое название может быть русским.
+- **Изоляция**: story не обращается к реальным внешним сервисам. Patterns получают тестовые callbacks с управляемым результатом; feature, которая сама подключает `services/api` (в отличие от pattern, у неё это разрешено), подменяет реальные запросы через MSW — это тот конкретный случай, для которого MSW обязателен, а не просто удобный вариант из [предпочтений](ReactPreferences.md). Если feature читает store, story оборачивает её в тестовое/изолированное значение store, а не в реальный глобальный store приложения.
 - **Mock-данные**: допустимы инлайн-данные и общие fixtures из `mocks/` согласно [правилам моков](#mocks---моковые-данные-для-тестов-и-разработки). Story должна воспроизводиться изолированно, без реального backend и зависимости от запуска других stories.
 
 ### Storybook-таксономия (структура sidebar)
@@ -854,7 +975,7 @@ Business/
 
 Структура sidebar задаётся через мета-описание story. Иерархия соответствует структуре UI-кита:
 
-Покрытие состояний определено в таблицах [обязательных и желательных stories](#структура-story-файла) выше.
+Покрытие состояний определено в [обязательном наборе историй](#обязательный-набор-историй) выше.
 
 ## Сквозной пример: редактирование карточки
 
@@ -907,6 +1028,10 @@ Business/
 
 Если нужен тот же сценарий целиком на нескольких страницах, он переносится в business feature с подключением конкретного сервиса или в pattern с переданными операциями. Вместе с ним переезжают его форма, поведение и локальные преобразования. Одно лишь совпадение DTO не является причиной переноса.
 
+Это правило описывает органическое обнаружение дублирования — не выводи перенос из случайного совпадения кода на двух страницах. Отдельное и достаточное основание — прямая просьба сделать сценарий переиспользуемым бизнес-компонентом заранее, до появления второго потребителя: в этом случае перенос в `business/` оправдан сразу, а конкретную категорию (`pattern` или `feature`) определяет [критерий organisms/patterns/features](#граница-organisms-patterns-и-features) — кто управляет операцией, а не число текущих потребителей.
+
+Технически перенос — это перемещение файлов формы, её хуков и конвертеров (`{entity}FromDto`/`{entity}ToDto`) из `pages/{page}/-utils/` и `pages/{page}/-components/` в новый модуль `business/{pattern|feature}/...` с обновлением их импортов на `@/services/api/{domain}` и публикацией через `index.ts` нового модуля. Страница-бывший-владелец после переноса импортирует готовый компонент через публичный API `components` и не оставляет у себя копию конвертеров/формы ради обратной совместимости — дублирующий код на переходный период не создаётся, импорты страницы обновляются сразу.
+
 ### Что проверить в примере
 
 | Ситуация | Ожидаемый результат |
@@ -923,7 +1048,7 @@ Business/
 
 ## Готовность изменения и проверки
 
-Этот раздел задаёт общий минимум. Конкретные команды и инструменты находятся в [паспорте проекта](../README.md#паспорт-проекта). В корне toolbox нет команд приложения; рабочие команды учебного примера перечислены в [его README](../examples/react-reference/README.md). Таблица ниже не является отчётом об уже выполненных тестах.
+Этот раздел задаёт общий минимум. Конкретные команды и инструменты находятся в [паспорте проекта](../README.md#паспорт-проекта). В toolbox нет команд приложения: пример является скелетом без package.json. Таблица ниже не является отчётом об уже выполненных тестах.
 
 ### Критерии готовности
 

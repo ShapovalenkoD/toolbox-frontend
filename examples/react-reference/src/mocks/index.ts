@@ -1,1 +1,2 @@
-export { WorkspaceHandlers } from "./service";
+export * from "./components";
+export * from "./service";

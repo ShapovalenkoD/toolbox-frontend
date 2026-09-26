@@ -1,2 +1,2 @@
-export { TextField } from "./TextField";
-export type { TextFieldProps } from "./TextField.interface";
+export * from "./TextField";
+export type * from "./TextField.interface";

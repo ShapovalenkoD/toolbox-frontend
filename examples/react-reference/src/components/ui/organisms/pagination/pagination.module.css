@@ -1,0 +1,11 @@
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.ellipsis {
+  min-width: 24px;
+  color: var(--color-muted);
+  text-align: center;
+}

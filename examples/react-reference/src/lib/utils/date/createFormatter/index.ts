@@ -1,1 +1,1 @@
-export { createFormatter } from "./createFormatter";
+export * from "./createFormatter";

@@ -1,1 +1,1 @@
-export type { UnionToObjectMap } from "./unionToObjectMap";
+export type * from "./unionToObjectMap";

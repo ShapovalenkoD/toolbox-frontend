@@ -1,127 +1,73 @@
 # React reference
 
-Запускаемый образец архитектуры и оформления кода. Основной ориентир — cs2_frontend, без обязательного переноса Next.js. [Общие соглашения](../../README.md), [React-предпочтения](../../docs/ReactPreferences.md).
+Скелет нового проекта: образцы файлов, по которым видно, как раскладывать код и как он оформлен. Это не запускаемое приложение: здесь нет package.json, зависимостей, конфигурации сборщика и Storybook. Они создаются при инициализации проекта по [React-предпочтениям](../../docs/ReactPreferences.md) с проверкой актуальных версий. После переноса структуры образцы удаляются или заменяются кодом приложения.
 
-Это первая итерация эталона: один сценарий подключения, его API-слой и собственные UI-примитивы. Он предназначен для совместного ревью до дальнейшего расширения.
+[Общие соглашения](../../README.md) · [Структура](../../docs/ProjectStructure.md) · [Code Style Guide](../../docs/CODE_STYLE_GUIDE.md)
 
-## Запуск
+## Что внутри
 
-Из `examples/react-reference`:
-
-```sh
-npm ci
-npm run dev
+```text
+biome.json                       # форматирование, lint и сортировки — переносится в проект
+config/                          # env и feature flags
+src/
+  main.tsx                       # точка входа, подключение глобальных стилей
+  app/                           # App и RootProvider
+  constants/                     # глобальные константы (размеры страниц)
+  pages/
+    connectionPage/              # форма: mutation, RHF + Zod, DTO-конвертеры
+      -components/connectionForm/
+      -utils/
+    usersPage/                   # список на useQuery: поиск, loading/error/empty, Table + Pagination
+      UsersPage.constants.tsx    # колонки таблицы
+      -utils/
+    ordersPage/                  # страница размещает готовую feature
+  components/
+    ui/
+      foundation/                # токены, цвета, типографика, reset
+      atoms/                     # CSS-классы примитивов + stories
+      molecules/                 # TextField, LoadingButton + stories
+      organisms/                 # Pagination (окно страниц), Table (TanStack Table) + stories
+    business/
+      layouts/pageLayout/        # области страницы без данных
+      patterns/dataGrid/         # Table + Pagination, загрузка через loadData из props + story
+      features/order/ordersGrid/ # подключает сервис и store, передаёт операцию в DataGrid
+  services/
+    api/httpClient/              # единственный HTTP-клиент и типизированная ошибка
+    api/connection/              # mutation
+    api/user/                    # query keys + useQuery
+    api/order/                   # обычный async-метод для pattern
+    localStorage/, cookies/      # типизированные get/set/delete со схемой значений
+  store/                         # Zustand + immer, срез preferences
+  lib/
+    hooks/                       # useDebounce
+    business/formatters/         # formatPhone — форматирование с контекстом проекта
+    ts/                          # type-only утилиты
+    utils/                       # чистые утилиты, папка на функцию
+  mocks/
+    service/                     # MSW-handlers по доменам
+    components/                  # fixtures для stories
 ```
 
-Откройте `http://127.0.0.1:5173/demo.html` (либо адрес Vite). MSW перехватывает запрос учебного API в браузере; backend и настоящие ключи не нужны.
+Пустых папок под будущие домены нет: они создаются, когда появляется потребность. Папки `routes/` нет: маршрутизация выбирается при инициализации проекта.
 
-Для рабочего API: создайте `.env.local` по `.env.example`, задайте VITE_API_URL и запустите `npm run dev:api`. Корневой index.html использует приложение без моков. Контракт учебного endpoint описан ниже; это не реализация GREEN-API.
+## Что смотреть
 
-Для Storybook:
+1. `pages/connectionPage/` — форма со схемой рядом (`ConnectionForm.schema.ts`) и DTO-конвертеры в `-utils/`.
+2. `pages/usersPage/` — список на `useQuery`: страница владеет фильтром и номером страницы, запрос и его состояния — у TanStack Query.
+3. `components/business/` — граница organism / pattern / feature:
+   - `Table` и `Pagination` только отображают и сообщают о событиях;
+   - `DataGrid` сам выполняет переданную `loadData`, отменяет устаревший запрос, держит страницу, размер и сортировку;
+   - `OrdersGrid` подключает `getOrders` и store, преобразует DTO локально в `utils/`.
+4. `services/api/` — `useQuery` с ключами домена (`user`) и обычный async-метод (`order`), который можно передать в pattern как операцию.
+5. `store/` — срез на Zustand + immer; страница/feature читает и меняет его, store не знает о services.
+6. `components/ui/` — foundation → atoms (только CSS) → molecules → organisms.
+7. `lib/` — `utils` без контекста проекта, `business` с ним, общий хук в `hooks`.
+8. Любой `index.ts` — публичный API через `export *` / `export type *`; именованный реэкспорт там, где файл содержит внутренние сущности (`pagination/index.ts`, `store/index.ts`).
 
-```sh
-npm run storybook
-```
+## Стек, на который рассчитаны образцы
 
-Адрес по умолчанию: `http://127.0.0.1:6006`. Есть stories трёх CSS-атомов и двух молекул, включая ошибку, disabled и loading. Button-стиль показан на кнопке и ссылке.
+React, TypeScript, Vite, TanStack Query, TanStack Table v9, Axios, React Hook Form + Zod, Zustand + immer, CSS Modules + clsx, Storybook, MSW, Biome. Это один из допустимых вариантов, а не обязательный набор: при другом выборе (Next.js, Tailwind, fetch и т.п.) сохраняется раскладка и оформление, а инструментальные детали меняются по [React-предпочтениям](../../docs/ReactPreferences.md).
 
-## Сценарии для просмотра
+Алиасы, которые предполагают образцы: `@/*` → `src/*`, `@config` → `config/index.ts`. Их настраивают в tsconfig и сборщике при инициализации.
 
-| Действие | Результат |
-|---|---|
-| Отправить пустую форму | Ошибки полей, запрос не отправляется |
-| Ввести название и неверный код из 4+ символов | После загрузки показана ошибка сервиса, ввод сохранён |
-| Ввести название и код demo-access | Loading, затем подтверждение с преобразованными названием и временем |
-| Работать с клавиатуры | Подписи связаны с полями, виден focus; ошибка поля описывает input |
-| Посмотреть stories | Состояния примитивов и молекул видны без страницы и сервиса |
-
-Демо-ответ задержан на 700 мс, чтобы было видно состояние отправки. Значения во время отправки заблокированы. MSW запускается только из demo/main.tsx. В src/main.tsx и production-сборке нет подключения моков.
-
-## Что читать в коде
-
-1. `src/pages/connectionPage/ConnectionPage.tsx` — композиция экрана.
-2. `ConnectionPage.interface.ts` рядом — внутренние модели страницы. Короткая orchestration-логика остаётся в самой странице.
-3. `_components/connectionForm/` — React Hook Form, Zod, поля и отправка.
-4. `utils/connectionToDto/` и `utils/connectionFromDto/` — отдельные преобразования этого сценария.
-5. `src/services/api/httpClient/` — общая настройка Axios и нормализация транспортных ошибок.
-6. `src/services/api/connection/` — DTO и TanStack mutation с запросом через единственный HttpClient; без промежуточного endpoint-делегата.
-7. `src/components/ui/` — foundation, CSS-atoms, TextField и LoadingButton.
-
-Приватные типы и конвертеры страницы не экспортируются из connectionPage/index.ts. Группирующие индексы явно выбирают публичный API. Пустых директорий под будущие store, router, patterns и features нет.
-
-Форма передаёт значения страницы, а не transport DTO. Сервисная mutation возвращает сырой DTO. Pending и ошибка запроса принадлежат TanStack Query, dirty/валидация/submitting — React Hook Form. Отдельная копия сетевого состояния в store не создаётся.
-
-## Проверка версий
-
-Зависимости проверены по npm latest 21 сентября 2026 года: Vite 8.3.0, React plugin 6.1.1, TypeScript 7.0.2, Biome 2.5.14, React 19.3.0, Storybook 10.6.0. Минимумы диапазонов package.json обновлены до проверенных версий; точные версии фиксирует package-lock.json.
-
-Исключение: @types/node 22.20.4 соответствует принятой среде Node 22, а не последней ветке типов Node 26. Проверка выполняется на Node 22.19.0. Системная версия Node этим обновлением не меняется.
-
-В tsconfig удалён baseUrl; пути aliases явно относительны tsconfig: ./src/* и ./config/index.ts. Vite использует соответствующие resolve.alias. TypeScript проверяет типы, Vite собирает приложение, Biome независимо форматирует и анализирует исходный код. Правила Biome и его schema проверяются отдельно при обновлении.
-
-При создании нового приложения версии повторно проверяются по [правилу актуальности](../../docs/ReactPreferences.md#актуальность-версий), а не копируются из этого снимка. См. [TypeScript 7](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) и [Vite 8](https://vite.dev/blog/announcing-vite8).
-
-## Паспорт примера
-
-| Решение | Выбор и причина |
-|---|---|
-| Основа | React 19, TypeScript, Vite; для одного клиентского сценария не нужен Next.js |
-| Формы | React Hook Form + Zod + resolver |
-| HTTP | Axios; один общий HttpClient |
-| Запросы | TanStack Query; mutation не повторяет POST автоматически |
-| UI | Глобальные CSS-классы atoms; CSS Modules для локальных композиций; clsx |
-| Форматирование | Только Biome: форматирование, lint, hooks и ограничения импортов; пустые строки проверяются при ревью |
-| UI-документация | Storybook React/Vite + Autodocs |
-| Моки | MSW в отдельной демонстрационной точке входа |
-| Tailwind | Пока не подключён; допустимый вариант, при выборе обязателен tailwind-merge и сортировка классов |
-| Faker | Пока не нужен для одного короткого ответа; предпочтителен для генерации наборов fixtures |
-| Floating UI, TanStack Table/Virtual | Подключаются при появлении соответствующего UI-поведения |
-| Router и store | Для этого сценария не нужны |
-| Тестовый раннер | Не установлен в первой итерации; проверяем формат, типы, сборки и сценарии в браузере |
-
-Совместимые точные версии зафиксированы в package-lock.json. При переносе в другой проект сначала учитывайте его стек и существующие инструкции.
-
-## Команды
-
-| Команда | Назначение |
-|---|---|
-| npm run dev | Демо с MSW |
-| npm run dev:api | Приложение с настроенным API |
-| npm run format | Biome: исправление оформления |
-| npm run format:check | Оформление, сортировки и дополнительные правила без записи |
-| npm run lint | Правила Biome |
-| npm run typecheck | TypeScript, включая stories и конфигурацию Storybook |
-| npm run build | Проверка типов и production-сборка |
-| npm run preview | Просмотр production-сборки с настоящим настроенным API |
-| npm run storybook | UI в изоляции |
-| npm run build:storybook | Статическая сборка Storybook |
-| npm run check | format:check + typecheck + production build |
-
-Правила Biome noRestrictedImports проверяют указанные шаблоны импортов. Это не полный графовый анализ зависимостей: происхождение реэкспортов и публичный API дополнительно проверяются при ревью. Самописного линтера нет.
-
-## Учебный API
-
-`POST {VITE_API_URL}/connections`.
-
-Запрос: `{ connection_name: string, access_key: string }`.
-Ответ: `{ connection_id: string, connection_name: string, connected_at: string }`, где connected_at — корректная ISO-дата.
-Ошибка неверного ключа: HTTP 401.
-
-UI использует собственные имена name/accessKey и title/connectedAt; преобразования находятся в странице. Generic Axios-типы не валидируют ответ во время выполнения. Если реальный внешний контракт нестабилен, схема DTO добавляется в сервис.
-
-Авторизация, хранение ключей, повторные запросы и полноценный жизненный цикл соединения не реализованы: это не готовый клиент рабочего сервиса. Для новой интеграции эти требования определяются её контрактом.
-
-## Как расширять
-
-Сначала согласуйте читаемость текущего примера. Следующий сценарий может показать DataGrid на TanStack Table или dropdown на Floating UI, когда станет понятно нужное поведение. Не устанавливайте все предпочтительные библиотеки заранее.
-
-
-## Общие утилиты и localStorage
-
-Перенесены исходные корневые lib/utils и services/localStorage. Утилиты находятся в src/lib/utils по отдельным модулям; UnionToObjectMap — в src/lib/ts. Индексы задают явный публичный API. connectionFromDto использует общий formatDate и явный return.
-
-Невалидные даты дают пустую строку, formatDateToParts — пустой массив. Число в formatTime означает длительность в секундах (дробная часть отбрасывается); Date/строка — местное время. Отрицательная/нечисловая длительность даёт пустую строку. formatPrice принимает конечное число или непустую числовую строку; null, boolean, пустая строка и Infinity не превращаются в цену. Ошибочные настройки Intl не скрываются. Кеш форматтеров рассчитан на конечный набор настроек приложения.
-
-fillArrayToLength возвращает новый массив, не обрезает исходные элементы, проверяет длину; объекты заполнения сохраняют одну общую ссылку, как Array.fill. declOfNum принимает кортеж трёх форм, учитывает отрицательные числа и дроби.
-
-localStorage хранит строки по LocalStorageMap; учебный ключ test допускает foo/bar. Значение при чтении проверяется схемой; отсутствующее или некорректное значение даёт undefined. Без window чтение возвращает undefined, запись/удаление ничего не делают. Ошибки доступа браузера и превышение квоты передаются вызывающему коду, чтобы не сообщать о ложном сохранении. Импорт не читает хранилище. JSON-сериализация и внутренний store здесь не добавлены.
+Последняя проверка образцов (26.09.2026, во временной копии с зависимостями): Biome, `tsc --noEmit`, сборка Vite и Storybook build; страницы users/orders проверены в браузере на моках.

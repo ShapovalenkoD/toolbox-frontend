@@ -1,1 +1,1 @@
-export { WorkspaceHandlers } from "./workspace.mock";
+export * from "./workspace.mock";

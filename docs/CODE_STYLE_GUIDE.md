@@ -6,7 +6,7 @@
 
 ## Форматирование и читаемость
 
-В React-профиле единственный инструмент форматирования, линтинга и организации импортов — Biome. ESLint, Prettier и их плагины не подключаем. Исполняемый ориентир по образцу cs2_frontend: [biome.json](../examples/react-reference/biome.json). Настройки старого проекта переносятся осмысленно, с проверкой версии инструмента.
+В React-профиле единственный инструмент форматирования, линтинга и организации импортов — Biome. ESLint, Prettier и их плагины не подключаем. Ориентир по образцу cs2_frontend: [biome.json](../examples/react-reference/biome.json). Настройки старого проекта переносятся осмысленно, с проверкой версии инструмента.
 
 - Отступ — два пробела, двойные кавычки, точки с запятой, завершающие запятые там, где поддерживаются. Ширина строки в примере — 100 символов.
 - Импорты группируются: Node, пакеты, aliases проекта, родительские и соседние модули; стили всегда последней отдельной группой с пустой строкой перед ней. Это относится к CSS Modules и обычным stylesheet-импортам. Порядок CSS cascade задаётся внутри общего ui/index.css, а не случайным порядком импортов компонентов. Сортировки импортов, JSX-атрибутов, ключей и CSS-свойств выполняет конфигурация Biome; сохраняем семантику spread, порядок вычислений и CSS cascade.
@@ -25,14 +25,18 @@
 | ----------------------------------- | ---------------------------------------------- | ----------------------------- |
 | Папка компонента/утилиты            | `camelCase/`                                   | `productCard/`, `radioGroup/` |
 | Компонент                           | `PascalCase.tsx`                               | `ProductCard.tsx`             |
+| Служебная папка страницы/экрана     | `-camelCase/`                                  | `-components/`, `-utils/`, `-hooks/` |
 | Хук (привязан к компоненту)         | `PascalCase.hooks.ts`                          | `ProductCard.hooks.ts`        |
+| Константы (привязаны к компоненту)  | `PascalCase.constants.ts(x)`                   | `ProductCard.constants.ts`    |
+| Схема валидации (привязана к компоненту) | `PascalCase.schema.ts`                    | `ProductForm.schema.ts`       |
 | Интерфейсы (привязаны к компоненту) | `PascalCase.interface.ts`                      | `ProductCard.interface.ts`    |
+| Интерфейсы (не привязаны к компоненту: DTO, транспортные и прочие самостоятельные контракты) | `camelCase.interface.ts` | `userResponse.interface.ts`, `requestOptions.interface.ts` |
 | Тест (привязан к компоненту)        | `PascalCase.test.tsx`                          | `ProductCard.test.tsx`        |
 | Story (привязан к компоненту)       | `PascalCase.stories.tsx`                       | `ProductCard.stories.tsx`     |
 | Стили компонента                    | `camelCase.module.css` / `camelCase.styles.ts` | `productCard.module.css`      |
 | Глобальные стили атома              | `camelCase.css` | `button.css` |
 | Утилита                             | `camelCase.ts`                                 | `formatPrice.ts`              |
-| Константы                           | `camelCase.constants.ts`                       | `routes.constants.ts`         |
+| Константы (не привязаны к компоненту) | `camelCase.constants.ts`                     | `routes.constants.ts`         |
 | Мок                                 | `camelCase.mock.ts`                            | `userApi.mock.ts`             |
 | Barrel-экспорт                      | `index.ts`                                     | В папках с публичными экспортами |
 
@@ -40,9 +44,11 @@
 
 - Один компонент на файл
 - Именованный экспорт в прикладном коде; обязательные default exports фреймворков и инструментов допускаются — см. [правила экспорта](#экспорт).
-- Файлы-компаньоны компонента (`.hooks.ts`, `.interface.ts`, `.test.ts`, `.stories.tsx`) наследуют PascalCase от компонента
+- Файлы-компаньоны компонента (`.hooks.ts`, `.interface.ts`, `.constants.ts`, `.schema.ts`, `.test.ts`, `.stories.tsx`) наследуют PascalCase от компонента
+- Суффикс обозначает роль файла, лежащего рядом с компонентом. Самостоятельный модуль в служебной папке суффикс не дублирует: `-utils/cardFromDto/cardFromDto.ts`, `-hooks/useCardDraft/useCardDraft.ts`. Когда companion-файл перерастает одну ответственность, его части выносятся в такие папки.
 - Стили — всегда camelCase: `productCard.module.css`, `productCard.styles.ts`
 - Собственные интерфейсы — в отдельном файле рядом с реализацией: `ProductCard.interface.ts` рядом с `ProductCard.tsx`. Если интерфейсов нет, пустой файл не создаём.
+- Интерфейс, не привязанный к конкретному компоненту (DTO домена, общий транспортный контракт, модель store) — `camelCase.interface.ts`: `userResponse.interface.ts`, `error.interface.ts`, `currentClient.interface.ts`. Правило по типу владельца: если файл описывает контракт компонента — PascalCase; если описывает данные/сущность — camelCase, как сам файл этой сущности.
 - Хуки рядом с компонентом: `ProductCard.hooks.ts` рядом с `ProductCard.tsx`
 - Интерфейсы страницы лежат рядом с ней в `PageName.interface.ts`, даже если их используют её форма и конвертеры. Совместное использование внутри страницы не требует `types/`. Такая папка нужна только для самостоятельного набора типов с отдельной ответственностью.
 
@@ -241,4 +247,15 @@ return <button type="button" onClick={handleClick}>Выполнить</button>;
 Исключение: тривиальные делегаты с параметром допустимы:
 ```tsx
 return <button type="button" onClick={() => onRemove(id)}>Удалить</button>;
+```
+
+Функции, которые компонент передаёт дочерним компонентам и хукам как операции или колбэки (`loadData`, `getRowId` и т.п.), объявляются внутри компонента и оборачиваются в `useCallback`. Не выносим их на уровень модуля ради стабильной ссылки. Чистые преобразования без привязки к компоненту остаются утилитами (`utils/`).
+
+```tsx
+// Фрагмент тела feature-компонента.
+const loadOrders = useCallback(async (params: DataGridParams) => {
+  const dto = await getOrders(ordersParamsToDto(params), params.signal);
+
+  return { items: dto.items.map(orderRowFromDto), total: dto.total };
+}, []);
 ```

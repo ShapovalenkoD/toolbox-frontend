@@ -1,8 +1,8 @@
 import { useConnectWorkspace } from "@/services";
 
-import { ConnectionForm } from "./_components";
+import { ConnectionForm } from "./-components";
+import { connectionErrorMessage, connectionFromDto, connectionToDto } from "./-utils";
 import type { ConnectionFormValues } from "./ConnectionPage.interface";
-import { connectionErrorMessage, connectionFromDto, connectionToDto } from "./utils";
 
 import styles from "./connectionPage.module.css";
 

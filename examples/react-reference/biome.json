@@ -43,7 +43,6 @@
       "!!**/node_modules",
       "!!**/dist",
       "!!**/storybook-static",
-      "!!demo/public",
       "!package-lock.json"
     ]
   },
@@ -86,7 +85,12 @@
       }
     },
     {
-      "includes": ["src/lib/utils/**/*.ts", "src/pages/**/utils/**/*.ts"],
+      "includes": [
+        "src/lib/utils/**/*.ts",
+        "src/lib/business/**/*.ts",
+        "src/pages/**/-utils/**/*.ts",
+        "src/components/business/**/utils/**/*.ts"
+      ],
       "linter": {
         "rules": {
           "style": {

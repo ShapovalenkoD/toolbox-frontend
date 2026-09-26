@@ -5,6 +5,7 @@
   text-rendering: optimizeLegibility;
 }
 button,
-input {
+input,
+select {
   font: inherit;
 }

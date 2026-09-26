@@ -1,1 +1,1 @@
-export { fillArrayToLength } from "./fillArrayToLength";
+export * from "./fillArrayToLength";

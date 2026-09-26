@@ -1,1 +1,1 @@
-export { declOfNum } from "./declOfNum";
+export * from "./declOfNum";

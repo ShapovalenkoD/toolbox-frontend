@@ -1,0 +1,49 @@
+.wrap {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.table {
+  width: 100%;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+.table[aria-busy="true"] tbody {
+  opacity: 0.6;
+}
+.caption {
+  padding: 14px 16px 0;
+  font-weight: 650;
+  text-align: left;
+}
+.headCell,
+.cell,
+.empty {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+.headCell {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--color-muted);
+}
+.sortButton {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 0;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.empty {
+  color: var(--color-muted);
+  text-align: center;
+}
+tbody tr:last-child .cell {
+  border-bottom: 0;
+}

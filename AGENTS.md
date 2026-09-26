@@ -12,7 +12,7 @@
 
 | Задача | Дополнительное чтение |
 |---|---|
-| Новый проект, выбор зависимостей или настройка UI-инструментов | [React-профиль](docs/ReactPreferences.md), существующие package scripts и конфигурации; [исполняемый пример](examples/react-reference/README.md) как ориентир |
+| Новый проект, выбор зависимостей или настройка UI-инструментов | [React-профиль](docs/ReactPreferences.md), существующие package scripts и конфигурации; [скелет проекта](examples/react-reference/README.md) как ориентир раскладки и оформления |
 | Страница или локальные компоненты | [app](docs/ProjectStructure.full.md#app---точка-входа-приложения) |
 | Новый компонент или изменение его ответственности | [components](docs/ProjectStructure.full.md#components---компоненты-приложения), включая границы UI, layouts, patterns и features |
 | Загрузка, сохранение, формы, DTO, состояние | [services](docs/ProjectStructure.full.md#services---работа-с-side-эффектами), [DTO и модели](docs/ProjectStructure.full.md#dto-vs-внутренние-модели), [store](docs/ProjectStructure.full.md#store---клиентское-состояние) |

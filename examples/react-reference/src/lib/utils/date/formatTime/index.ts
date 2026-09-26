@@ -1,1 +1,1 @@
-export { formatTime } from "./formatTime";
+export * from "./formatTime";

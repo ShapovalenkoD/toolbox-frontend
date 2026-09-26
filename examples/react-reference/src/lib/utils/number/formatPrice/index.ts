@@ -1,1 +1,1 @@
-export { formatPrice } from "./formatPrice";
+export * from "./formatPrice";

@@ -38,3 +38,17 @@
   color: var(--color-surface);
   background: var(--color-accent);
 }
+.button-size-sm {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.button-variant-secondary {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+.button-variant-secondary:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}

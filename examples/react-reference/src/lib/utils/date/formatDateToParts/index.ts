@@ -1,1 +1,1 @@
-export { formatDateToParts } from "./formatDateToParts";
+export * from "./formatDateToParts";

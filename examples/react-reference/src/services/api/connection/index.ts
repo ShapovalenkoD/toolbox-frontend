@@ -1,5 +1,2 @@
-export type {
-  ConnectWorkspaceRequestDto,
-  ConnectWorkspaceResponseDto,
-} from "./connection.interface";
-export { useConnectWorkspace } from "./connection.mutations";
+export type * from "./connection.interface";
+export * from "./connection.mutations";

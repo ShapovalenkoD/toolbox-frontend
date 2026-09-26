@@ -1,1 +1,0 @@
-export { connectionErrorMessage } from "./connectionErrorMessage";

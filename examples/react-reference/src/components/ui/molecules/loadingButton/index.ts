@@ -1,2 +1,2 @@
-export { LoadingButton } from "./LoadingButton";
-export type { LoadingButtonProps } from "./LoadingButton.interface";
+export * from "./LoadingButton";
+export type * from "./LoadingButton.interface";

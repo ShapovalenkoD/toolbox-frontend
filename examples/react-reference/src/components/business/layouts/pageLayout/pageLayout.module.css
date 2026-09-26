@@ -1,0 +1,44 @@
+.page {
+  display: grid;
+  gap: 24px;
+  max-width: 1120px;
+  padding: 36px 40px;
+  margin: 0 auto;
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.heading {
+  display: grid;
+  gap: 6px;
+}
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+}
+.description {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.content {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 24px 16px;
+  }
+}

@@ -1,1 +1,1 @@
-export { ConnectionPage } from "./ConnectionPage";
+export * from "./ConnectionPage";

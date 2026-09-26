@@ -1,2 +1,2 @@
-export { createFormatterNumber } from "./createFormatterNumber";
-export { formatPrice } from "./formatPrice";
+export * from "./createFormatterNumber";
+export * from "./formatPrice";
